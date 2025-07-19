@@ -14,8 +14,6 @@ public class TerretControl : MonoBehaviour
     private Transform target;
     [SerializeField] private string enemyTag = "Enemy";
     
-    public GameObject EnemyPrefab;
-    
     private Vector3 offset;
     private Plane groundPlane;
     private float initialY;
