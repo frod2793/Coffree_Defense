@@ -83,20 +83,16 @@ public class NormalTerret:TerretBase
 
     void Shoot()
     {
-        // bulletPrefab과 firePoint가 모두 할당되었는지 확인합니다.
+        
         if (bulletPrefab != null && firePoint != null)
         {
             // 오브젝트 풀에서 총알을 가져옵니다.
             GameObject bulletGO = bulletPool.Get();
             if (bulletGO == null) return;
 
-            // --- firePoint의 역할 ---
-            // 총알의 시작 위치를 firePoint의 위치로 설정합니다.
             bulletGO.transform.position = firePoint.position;
-            // 총알의 시작 방향을 firePoint의 방향으로 설정합니다.
             bulletGO.transform.rotation = firePoint.rotation;
             
-            // Bullet 스크립트가 있다면 여기서 목표물 설정
             Bullet bullet = bulletGO.GetComponent<Bullet>();
             if (bullet != null)
             {
