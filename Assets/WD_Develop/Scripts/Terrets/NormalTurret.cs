@@ -4,8 +4,12 @@ using UnityEngine.Pool;
 //역할:
 // 터렛 오브젝트에 추가될 클래스 
 
+
+// TurretBone 오브젝트에 ItemA 오브젝트가 드래그앤 드랍으로 충돌시
+// NormalTurret 오브젝트로 변환
+
 [RequireComponent(typeof(BoxCollider))]
-public class NormalTerret:TerretBase
+public class NormalTurret:TurretBase
 {
     [Header("Normal Terret Specifics")]
     [SerializeField] private GameObject bulletPrefab;
@@ -29,7 +33,7 @@ public class NormalTerret:TerretBase
         if (bulletPrefab == null)
             Debug.LogError("Bullet Prefab이 할당되지 않았습니다.", this);
         if (firePoint == null)
-            Debug.LogError("Fire Point가 할당되지 ���았습니다.", this);
+            Debug.LogError("Fire Point가 할당되지 않았습니다.", this);
         if (terretHead == null)
             Debug.LogError("Terret Head가 할당되지 않았습니다.", this);
 

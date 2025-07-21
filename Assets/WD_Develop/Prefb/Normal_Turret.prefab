@@ -122,9 +122,10 @@ GameObject:
   - component: {fileID: 1659155149316317406}
   - component: {fileID: 8332161176040327332}
   - component: {fileID: 471845348790075463}
+  - component: {fileID: 8208940818492853255}
   m_Layer: 0
-  m_Name: Terret
-  m_TagString: Terret
+  m_Name: Normal_Turret
+  m_TagString: Turret
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -259,12 +260,27 @@ MonoBehaviour:
   attackSpeed: 1
   hp: 100
   destructionEffect: {fileID: 0}
-  bulletPrefab: {fileID: 0}
-  firePoint: {fileID: 0}
+  bulletPrefab: {fileID: 9185332407487830785, guid: 6aa837a1bf957443fb6a3e3b11e0d763, type: 3}
+  firePoint: {fileID: 1506677782805472233}
   terretHead: {fileID: 426027159090997811}
   range: 15
   turnSpeed: 10
   enemyTag: Enemy
+--- !u!114 &8208940818492853255
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1037895725824817058}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e19747de3f5aca642ab2be37e372fb86, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_EffectColor: {r: 0, g: 0, b: 0, a: 0.5}
+  m_EffectDistance: {x: 1, y: -1}
+  m_UseGraphicAlpha: 1
 --- !u!1 &4472683593271291657
 GameObject:
   m_ObjectHideFlags: 0

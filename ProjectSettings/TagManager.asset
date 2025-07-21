@@ -5,16 +5,16 @@ TagManager:
   serializedVersion: 3
   tags:
   - Enemy
-  - Terret
+  - Turret
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Ground
   - Water
   - UI
-  - 
-  - 
+  - Turret
+  - Preview
   - 
   - 
   - 
