@@ -1,8 +1,9 @@
 using UnityEngine;
 using System.Collections;
+using EPOOutline;
 using UnityEngine.UI;
 
-[RequireComponent(typeof(Outline))] // 모든 터렛에 Outline 컴포넌트 강제
+[RequireComponent(typeof(Outlinable))] // 모든 터렛에 Outlinable 컴포넌트 강제
 public class TurretBase : MonoBehaviour
 {
     // TurretBase 클래스는 테렛의 기본 기능을 정의합니다.
@@ -28,15 +29,15 @@ public class TurretBase : MonoBehaviour
     [Header("Effects")]
     [SerializeField] private GameObject destructionEffect;
     
-    private Outline outline; // 아웃라인 컴포넌트 참조
+    private Outlinable outlineComponent; // Outline에서 Outlinable로 변경
     private CombinationEffect combinationEffect; // 조합 효과 컴포넌트 참조
     
     void Awake()
     {
-        outline = GetComponent<Outline>();
-        if (outline != null)
+        outlineComponent = GetComponent<Outlinable>();
+        if (outlineComponent != null)
         {
-            outline.enabled = false; // 기본적으로 비활성화
+            outlineComponent.enabled = false; // 기본적으로 비활성화
         }
         
         // 조합 효과 컴포넌트 참조 가져오기
@@ -60,12 +61,35 @@ public class TurretBase : MonoBehaviour
         // 공격 로직은 자식 클래스에서 구현해야 합니다.
     }
 
-    public void SetOutline(bool active)
+    public void SetOutline(bool active, Color? color = null, float width = 5f)
     {
-        if (outline != null)
+        if (outlineComponent != null)
         {
-            outline.enabled = active;
+            outlineComponent.enabled = active;
+            if (active && color.HasValue)
+            {
+                outlineComponent.OutlineParameters.Color = color.Value;
+                outlineComponent.OutlineParameters.DilateShift = width;
+            }
         }
+    }
+
+    // 드래그 중일 때 아웃라인 활성화 (조합 가능한 경우)
+    public void EnableDragOutline()
+    {
+        SetOutline(true, Color.green, 5f);
+    }
+
+    // 조합 준비 상태일 때 아웃라인 활성화
+    public void EnableCombinationReadyOutline()
+    {
+        SetOutline(true, Color.yellow, 3f);
+    }
+
+    // 아웃라인 비활성화
+    public void DisableOutline()
+    {
+        SetOutline(false);
     }
 
     public void OnMouseUp()
@@ -134,6 +158,9 @@ public class TurretBase : MonoBehaviour
             combinationEffect.ShowCombiningEffect();
         }
         
+        // 조합 아웃라인 활성화
+        SetOutline(true, Color.cyan, 6f);
+        
         Debug.Log($"{gameObject.name}이(가) 조합 모드로 전환");
     }
     
@@ -153,6 +180,24 @@ public class TurretBase : MonoBehaviour
             combinationEffect.HideCombiningEffect();
         }
         
+        // 아웃라인 비활성화
+        DisableOutline();
+        
         Debug.Log($"{gameObject.name}이(가) 조합 모드 종료");
+    }
+
+    // 조합 가능한 아이템인지 확인
+    public bool CanCombineWithItem(ItemA item)
+    {
+        if (item == null) return false;
+        
+        // TurretCombinationManager를 통해 조합 가능성 확인
+        var combinationManager = FindObjectOfType<TurretCombinationManager>();
+        if (combinationManager != null)
+        {
+            return combinationManager.CanCombine(this, item);
+        }
+        
+        return false;
     }
 }

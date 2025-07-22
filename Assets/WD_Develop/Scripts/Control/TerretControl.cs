@@ -109,6 +109,9 @@ public class TerretControl : MonoBehaviour
                         
                         offset = selectedTurret.position - GetMouseWorldPos();
                         
+                        // 터렛 선택 시 드래그 아웃라인 활성화
+                        selectedTurretBase.SetOutline(true, Color.green, 6f);
+                        
                         if(uiManager != null) uiManager.SetDraggingTurret(true);
                     }
                 }
@@ -120,6 +123,7 @@ public class TerretControl : MonoBehaviour
         {
             Vector3 newPos = GetMouseWorldPos() + offset;
             selectedTurret.position = new Vector3(newPos.x, initialY, newPos.z);
+            // 드래그 중 아웃라인 유지 (이미 활성화됨)
         }
 
         // 마우스 왼쪽 버튼을 뗐을 때
@@ -127,6 +131,9 @@ public class TerretControl : MonoBehaviour
         {
             // 터렛 배치 완료 처리
             selectedTurretBase.OnMouseUp();
+            
+            // 터렛 아웃라인 비활성화
+            selectedTurretBase.SetOutline(false);
             
             selectedTurret = null;
             selectedTurretBase = null;
@@ -268,7 +275,7 @@ public class TerretControl : MonoBehaviour
     }
     
     /// <summary>
-    /// 아이템 드래그를 시작합니다.
+    /// 아���템 드래그를 시작합니다.
     /// </summary>
     public void StartItemDrag(GameObject itemPrefab)
     {
