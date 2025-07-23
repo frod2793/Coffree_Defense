@@ -192,7 +192,7 @@ public class TurretBase : MonoBehaviour
         if (item == null) return false;
         
         // TurretCombinationManager를 통해 조합 가능성 확인
-        var combinationManager = FindObjectOfType<TurretCombinationManager>();
+        var combinationManager = FindAnyObjectByType<TurretCombinationManager>();
         if (combinationManager != null)
         {
             return combinationManager.CanCombine(this, item);

@@ -21,6 +21,9 @@ public class TerretControl : MonoBehaviour
     // 바닥 평면이 초기화되었는지 여부를 추적하는 변수
     private bool isGroundPlaneInitialized = false;
     
+    [SerializeField]
+    private GameObject TurretBonePrefab; // 뼈대 터렛 프리팹 (조합의 기본 형태)
+    
     [Header("Combination")]
     [SerializeField] private TurretCombinationData combinationData; // 조합법 데이터
     private TurretBase highlightedTurret; // 현재 하이라이트된 터렛
@@ -34,7 +37,7 @@ public class TerretControl : MonoBehaviour
         initialY = 0f; // 기본 바닥 높이
         InitializeGroundPlane();
         
-        uiManager = FindObjectOfType<InGameUIManager>();
+        uiManager = FindAnyObjectByType<InGameUIManager>();
         if (uiManager == null)
         {
             Debug.LogError("InGameUIManager를 찾을 수 없습니다.");
@@ -49,6 +52,34 @@ public class TerretControl : MonoBehaviour
     {
         groundPlane = new Plane(Vector3.up, new Vector3(0, initialY, 0));
         isGroundPlaneInitialized = true;
+    }
+
+
+    public void SetAddTurret()
+    {
+        if (TurretBonePrefab == null)
+        {
+            Debug.LogError("TurretBonePrefab이 설정되지 않았습니다! Inspector에서 할당해주세요.");
+            return;
+        }
+        
+        // 뼈대 터렛 프리팹을 바닥에 배치
+        GameObject newTurret = Instantiate(TurretBonePrefab, Vector3.zero, Quaternion.identity);
+        
+        // 터렛 레이어 설정
+        int turretLayer = LayerMask.NameToLayer("Turret");
+        if (turretLayer != -1)
+        {
+            newTurret.layer = turretLayer;
+            // 모든 자식 오브젝트의 레이어도 설정
+            foreach (Transform child in newTurret.transform)
+            {
+                child.gameObject.layer = turretLayer;
+            }
+        }
+        
+        Debug.Log($"뼈대 터렛 배치 완료: {newTurret.name}");
+        
     }
     
     // 조합 데이터 유효성 검사

@@ -39,12 +39,15 @@ public class InGameUIManager : MonoBehaviour
     List<Image> images; // UI에 표시할 이미지 리스트
     
     [SerializeField]
+    Button addTurretButton; // 터렛 추가 버튼
+    
+    [SerializeField]
     List<GameObject> PrefabList; // UI에 표시할 프리팹 리스트
     
     void Start()
     {
         // TerretControl 찾기
-        terretControl = FindObjectOfType<TerretControl>();
+        terretControl = FindFirstObjectByType<TerretControl>();
         if (terretControl == null)
         {
             Debug.LogError("TerretControl을 찾을 수 없습니다.");
@@ -73,6 +76,15 @@ public class InGameUIManager : MonoBehaviour
             endDragEntry.callback.AddListener((data) => { OnEndDrag(); });
             trigger.triggers.Add(endDragEntry);
         }
+        
+        addTurretButton.onClick.AddListener(() =>
+        {
+            // 터렛 추가 버튼 클릭 시 TerretControl에 알림
+            if (terretControl != null)
+            {
+                terretControl.SetAddTurret();
+            }
+        });
         
         // 레이어 설정 체크
         CheckLayerSetup();

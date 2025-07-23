@@ -49,7 +49,7 @@ public class TurretCombinationManager : MonoBehaviour
     // 아이템 드래그 시작 시 조합 가능한 터렛들의 아웃라인 활성화
     public void OnItemDragStart(ItemA draggedItem)
     {
-        var allTurrets = FindObjectsOfType<TurretBase>();
+        var allTurrets = FindObjectsByType<TurretBase>(FindObjectsSortMode.None);
         foreach (var turret in allTurrets)
         {
             if (CanCombine(turret, draggedItem))
@@ -62,7 +62,7 @@ public class TurretCombinationManager : MonoBehaviour
     // 아이템 드래그 종료 시 모든 터렛의 아웃라인 비활성화
     public void OnItemDragEnd()
     {
-        var allTurrets = FindObjectsOfType<TurretBase>();
+        var allTurrets = FindObjectsByType<TurretBase>(FindObjectsSortMode.None);
         foreach (var turret in allTurrets)
         {
             turret.DisableOutline();
@@ -88,4 +88,3 @@ public class TurretCombinationManager : MonoBehaviour
         return true;
     }
 }
-

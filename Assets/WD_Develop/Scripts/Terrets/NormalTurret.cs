@@ -4,7 +4,6 @@ using UnityEngine.Pool;
 //역할:
 // 터렛 오브젝트에 추가될 클래스 
 
-
 // TurretBone 오브젝트에 ItemA 오브젝트가 드래그앤 드랍으로 충돌시
 // NormalTurret 오브젝트로 변환
 
@@ -48,7 +47,7 @@ public class NormalTurret:TurretBase
         );
     }
 
-    void Update()
+    protected override void Update()
     {
         // 배치 중이거나 파괴된 상태에서는 아무것도 하지 않음
         if (currentState == TerretState.Placement || currentState == TerretState.Destroyed)
