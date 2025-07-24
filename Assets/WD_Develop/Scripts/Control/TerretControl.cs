@@ -1,10 +1,13 @@
 using UnityEngine;
+using Cysharp.Threading.Tasks;
+using System.Threading;
 
 //역할:
 // 터렛들을 드래그앤 드랍하고 제어하는 터랫 컨트롤 매니져 스크립트 매니져 오브젝트에 배치 되어있을예정
 // 이 스크립트는 터렛 오브젝트를 드래그하여 배치하고 위치를 변경하는 역할을 합니다.
 // 터렛의 드래그는 오직 위치 이동에만 사용됩니다.
 // 조합 로직도 이 스크립트에서 처리합니다.
+// UniTask를 활용하여 성능 최적화
 
 public class TerretControl : MonoBehaviour
 {
@@ -22,20 +25,34 @@ public class TerretControl : MonoBehaviour
     private bool isGroundPlaneInitialized = false;
     
     [SerializeField]
-    private GameObject TurretBonePrefab; // 뼈대 터렛 프리팹 (조합의 기본 형태)
+    private GameObject turretBonePrefab; // 뼈대 터렛 프리팹 (조합의 기본 형태)
     
-    [Header("Combination")]
+    [Header("조합 데이터")]
     [SerializeField] private TurretCombinationData combinationData; // 조합법 데이터
     private TurretBase highlightedTurret; // 현재 하이라이트된 터렛
     private GameObject draggedItem; // 현재 드래그 중인 아이템의 프리팹 미리보기
     private GameObject selectedItemPrefab; // 현재 선택된 원본 아이템 프리팹
     private bool isDraggingItem = false; // 아이템을 드래그 중인지 여부
 
-    void Start()
+    // UniTask 관련
+    private CancellationTokenSource cancellationTokenSource;
+
+    async void Start()
+    {
+        cancellationTokenSource = new CancellationTokenSource();
+        
+        // 비동기 초기화
+        await InitializeAsync(cancellationTokenSource.Token);
+    }
+    
+    private async UniTask InitializeAsync(CancellationToken cancellationToken)
     {
         // 초기 바닥 평면 설정
         initialY = 0f; // 기본 바닥 높이
         InitializeGroundPlane();
+        
+        // UI 매니저 찾기를 비동기로 처리
+        await UniTask.Yield(cancellationToken);
         
         uiManager = FindAnyObjectByType<InGameUIManager>();
         if (uiManager == null)
@@ -45,6 +62,8 @@ public class TerretControl : MonoBehaviour
         
         // 조합 데이터 체크
         CheckCombinationData();
+        
+        Debug.Log("[TerretControl] 초기화 완료");
     }
     
     // 바닥 평면 초기화 메서드
@@ -54,32 +73,47 @@ public class TerretControl : MonoBehaviour
         isGroundPlaneInitialized = true;
     }
 
-
-    public void SetAddTurret()
+    public async UniTask SetAddTurretAsync(CancellationToken cancellationToken = default)
     {
-        if (TurretBonePrefab == null)
+        if (turretBonePrefab == null)
         {
             Debug.LogError("TurretBonePrefab이 설정되지 않았습니다! Inspector에서 할당해주세요.");
             return;
         }
         
+        // 터렛 생성을 다음 프레임으로 분산
+        await UniTask.Yield(cancellationToken);
+        
         // 뼈대 터렛 프리팹을 바닥에 배치
-        GameObject newTurret = Instantiate(TurretBonePrefab, Vector3.zero, Quaternion.identity);
+        GameObject newTurret = Instantiate(turretBonePrefab, new Vector3(0, 1, 0), Quaternion.identity);
+        
+        // 터렛 레이어 설정을 비동기로 처리
+        await SetTurretLayerAsync(newTurret, cancellationToken);
+        
+        Debug.Log($"뼈대 터렛 배치 완료: {newTurret.name}");
+    }
+
+    public void SetAddTurret()
+    {
+        // 동기 버전 유지 (하위 호환성)
+        SetAddTurretAsync(cancellationTokenSource.Token).Forget();
+    }
+    
+    private async UniTask SetTurretLayerAsync(GameObject turret, CancellationToken cancellationToken)
+    {
+        await UniTask.Yield(cancellationToken);
         
         // 터렛 레이어 설정
         int turretLayer = LayerMask.NameToLayer("Turret");
         if (turretLayer != -1)
         {
-            newTurret.layer = turretLayer;
+            turret.layer = turretLayer;
             // 모든 자식 오브젝트의 레이어도 설정
-            foreach (Transform child in newTurret.transform)
+            foreach (Transform child in turret.transform)
             {
                 child.gameObject.layer = turretLayer;
             }
         }
-        
-        Debug.Log($"뼈대 터렛 배치 완료: {newTurret.name}");
-        
     }
     
     // 조합 데이터 유효성 검사
@@ -308,7 +342,7 @@ public class TerretControl : MonoBehaviour
     /// <summary>
     /// 아���템 드래그를 시작합니다.
     /// </summary>
-    public void StartItemDrag(GameObject itemPrefab)
+    public async UniTask StartItemDragAsync(GameObject itemPrefab, CancellationToken cancellationToken = default)
     {
         if (itemPrefab == null) return;
         
@@ -321,17 +355,26 @@ public class TerretControl : MonoBehaviour
             InitializeGroundPlane();
         }
         
-        // 미리보기 생성
-        ShowItemPreview(itemPrefab);
+        // 미리보기 생성을 비동기로 처리
+        await ShowItemPreviewAsync(itemPrefab, cancellationToken);
         
         // 터렛 이동 비활성화
         SetTurretMovable(false);
     }
+
+    /// <summary>
+    /// 아이템 드래그를 시작합니다.
+    /// </summary>
+    public void StartItemDrag(GameObject itemPrefab)
+    {
+        // 동기 버전 유지 (하위 호환성)
+        StartItemDragAsync(itemPrefab, cancellationTokenSource.Token).Forget();
+    }
     
     /// <summary>
-    /// 아이템 드래그를 종료합니다.
+    /// 아이템 드래그를 종료합니다. (비동기 버전)
     /// </summary>
-    public void EndItemDrag()
+    public async UniTask EndItemDragAsync(CancellationToken cancellationToken = default)
     {
         isDraggingItem = false;
         
@@ -347,98 +390,116 @@ public class TerretControl : MonoBehaviour
                 
                 if (selectedItemPrefab.TryGetComponent<ItemA>(out var item))
                 {
-                    // 조합 이펙트 제거
-                    HideCombinationEffect(highlightedTurret);
-                    
-                    // 조합 결과 확인
-                    TurretBase resultPrefab = combinationData.GetCombinationResult(highlightedTurret, item);
-                    if (resultPrefab != null)
-                    {
-                        // 조합 성공 시 조합 효과 표시
-                        PlayCombinationSuccessEffect(highlightedTurret.transform.position);
-                        
-                        Debug.Log($"조합 성공! {highlightedTurret.name} + {selectedItemPrefab.name} = {resultPrefab.name}");
-                        
-                        // 조합 성공
-                        GameObject newTurretObj = Instantiate(resultPrefab.gameObject, highlightedTurret.transform.position, highlightedTurret.transform.rotation);
-                        TurretBase newTurretBase = newTurretObj.GetComponent<TurretBase>();
-                        
-                        // 새 터렛의 레이어 설정
-                        int turretLayer = LayerMask.NameToLayer("Turret");
-                        if (turretLayer != -1)
-                        {
-                            newTurretObj.layer = turretLayer;
-                            // 모든 자식 오브젝트의 레이어도 설정
-                            foreach (Transform child in newTurretObj.transform)
-                            {
-                                child.gameObject.layer = turretLayer;
-                            }
-                        }
-                        
-                        if (newTurretBase != null)
-                        {
-                            // 조합된 터렛이 바로 활성화되도록 상태를 변경합니다.
-                            newTurretBase.OnMouseUp();
-                        }
-                        Destroy(highlightedTurret.gameObject); // 기존 터렛 파괴
-                    }
-                    else
-                    {
-                        // 조합 실패 시 효과 표시
-                        PlayCombinationFailEffect(highlightedTurret.transform.position);
-                        
-                        // 조합 실패 시 터렛 조합 모드 종료
-                        highlightedTurret.EndCombining();
-                        
-                        Debug.LogWarning($"조합 실패: {highlightedTurret.name} + {selectedItemPrefab.name}");
-                    }
+                    // 조합 처리를 비동기로 실행
+                    await ProcessCombinationAsync(item, cancellationToken);
                 }
-                highlightedTurret.SetOutline(false);
-                highlightedTurret = null;
             }
             // 바닥에 드롭했는지 확인
             else
             {
-                int groundLayer = LayerMask.NameToLayer("Ground");
-                LayerMask groundMask = (groundLayer != -1) ? (1 << groundLayer) : Physics.DefaultRaycastLayers;
-                
-                if (Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out RaycastHit hit, Mathf.Infinity, groundMask))
-                {
-                    Debug.Log($"드롭한 위치: 바닥({hit.point})");
-                    
-                    // 뼈대 터렛(TurretBone) 또는 모든 터렛 종류를 바닥에 설치 가능하도록 합니다.
-                    if (selectedItemPrefab.GetComponent<TurretBase>() != null)
-                    {
-                        GameObject newTurret = Instantiate(selectedItemPrefab, hit.point, Quaternion.identity);
-                        
-                        // 터렛 레이어 설정
-                        int turretLayer = LayerMask.NameToLayer("Turret");
-                        if (turretLayer != -1)
-                        {
-                            newTurret.layer = turretLayer;
-                            // 모든 자식 오브젝트의 레이어도 설정
-                            foreach (Transform child in newTurret.transform)
-                            {
-                                child.gameObject.layer = turretLayer;
-                            }
-                        }
-                        
-                        Debug.Log($"터렛 배치 완료: {newTurret.name}");
-                    }
-                }
+                await ProcessGroundDropAsync(cancellationToken);
             }
 
             // 미리보기 오브젝트는 항상 파괴합니다.
-            Destroy(draggedItem);
-            draggedItem = null;
+            if (draggedItem != null)
+            {
+                Destroy(draggedItem);
+                draggedItem = null;
+            }
             selectedItemPrefab = null;
+        }
+    }
+
+    /// <summary>
+    /// 아이템 드래그를 종료합니다.
+    /// </summary>
+    public void EndItemDrag()
+    {
+        // 동기 버전 유지 (하위 호환성)
+        EndItemDragAsync(cancellationTokenSource.Token).Forget();
+    }
+    
+    /// <summary>
+    /// 조합 처리를 비동기로 실행합니다.
+    /// </summary>
+    private async UniTask ProcessCombinationAsync(ItemA item, CancellationToken cancellationToken)
+    {
+        // 조합 이펙트 제거
+        HideCombinationEffect(highlightedTurret);
+        
+        // 조합 결과 확인
+        TurretBase resultPrefab = combinationData.GetCombinationResult(highlightedTurret, item);
+        if (resultPrefab != null)
+        {
+            // 조합 성공 시 조합 효과 표시
+            PlayCombinationSuccessEffect(highlightedTurret.transform.position);
+            
+            Debug.Log($"조합 성공! {highlightedTurret.name} + {selectedItemPrefab.name} = {resultPrefab.name}");
+            
+            // 조합 처리를 다음 프레임으로 분산
+            await UniTask.Yield(cancellationToken);
+            
+            // 조합 성공
+            GameObject newTurretObj = Instantiate(resultPrefab.gameObject, highlightedTurret.transform.position, highlightedTurret.transform.rotation);
+            TurretBase newTurretBase = newTurretObj.GetComponent<TurretBase>();
+            
+            // 새 터렛의 레이어 설정
+            await SetTurretLayerAsync(newTurretObj, cancellationToken);
+            
+            if (newTurretBase != null)
+            {
+                // 조합된 터렛이 바로 활성화되도록 상태를 변경합니다.
+                newTurretBase.OnMouseUp();
+            }
+            Destroy(highlightedTurret.gameObject); // 기존 터렛 파괴
+        }
+        else
+        {
+            // 조합 실패 시 효과 표시
+            PlayCombinationFailEffect(highlightedTurret.transform.position);
+            
+            // 조합 실패 시 터렛 조합 모드 종료 (비동기)
+            await highlightedTurret.EndCombiningAsync(cancellationToken);
+            
+            Debug.LogWarning($"조합 실패: {highlightedTurret.name} + {selectedItemPrefab.name}");
+        }
+        
+        highlightedTurret.SetOutline(false);
+        highlightedTurret = null;
+    }
+    
+    /// <summary>
+    /// 바닥 드롭 처리를 비동기로 실행합니다.
+    /// </summary>
+    private async UniTask ProcessGroundDropAsync(CancellationToken cancellationToken)
+    {
+        int groundLayer = LayerMask.NameToLayer("Ground");
+        LayerMask groundMask = (groundLayer != -1) ? (1 << groundLayer) : Physics.DefaultRaycastLayers;
+        
+        if (Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out RaycastHit hit, Mathf.Infinity, groundMask))
+        {
+            Debug.Log($"드롭한 위치: 바닥({hit.point})");
+            
+            // 뼈대 터렛(TurretBone) 또는 모든 터렛 종류를 바닥에 설치 가능하도록 합니다.
+            if (selectedItemPrefab.GetComponent<TurretBase>() != null)
+            {
+                // 터렛 생성을 다음 프레임으로 분산
+                await UniTask.Yield(cancellationToken);
+                
+                GameObject newTurret = Instantiate(selectedItemPrefab, hit.point, Quaternion.identity);
+                
+                // 터렛 레이어 설정
+                await SetTurretLayerAsync(newTurret, cancellationToken);
+                
+                Debug.Log($"터렛 배치 완료: {newTurret.name}");
+            }
         }
     }
     
     /// <summary>
-    /// 선택한 아이템의 프리팹 미리보기를 마우스 위치에 표시합니다.
+    /// 선택한 아이템의 프리팹 미리보기를 마우스 위치에 표시합니다. (비동기)
     /// </summary>
-    private void ShowItemPreview(GameObject itemPrefab)
+    private async UniTask ShowItemPreviewAsync(GameObject itemPrefab, CancellationToken cancellationToken)
     {
         if (itemPrefab == null) return;
         
@@ -447,6 +508,9 @@ public class TerretControl : MonoBehaviour
         {
             Destroy(draggedItem);
         }
+        
+        // 마우스 위치 계산을 다음 프레임으로 분산
+        await UniTask.Yield(cancellationToken);
         
         // 마우스 위치 계산
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -460,7 +524,8 @@ public class TerretControl : MonoBehaviour
         // 미리보기 오브젝트 생성
         draggedItem = Instantiate(itemPrefab, spawnPosition, Quaternion.identity);
         
-        // 미리보기 특성 설정
+        // 미리보기 특성 설정을 다음 프레임으로 분산
+        await UniTask.Yield(cancellationToken);
         ConfigurePreviewObject(draggedItem);
         
         Debug.Log($"{itemPrefab.name} 미리보기 생성됨");
@@ -540,28 +605,59 @@ public class TerretControl : MonoBehaviour
     }
     
     /// <summary>
-    /// 조합 성공 이펙트를 재생합니다.
+    /// 조합 성공 이펙트를 재생합니다. (비동기 버전)
     /// </summary>
-    private void PlayCombinationSuccessEffect(Vector3 position)
+    private async UniTask PlayCombinationSuccessEffectAsync(Vector3 position, CancellationToken cancellationToken = default)
     {
         // 조합 성공 이펙트 구현 (파티클, 사운드 등)
         Debug.Log("조합 성공 이펙트 재생");
+        
+        // 이펙트 처리를 다음 프레임으로 분산
+        await UniTask.Yield(cancellationToken);
         
         // 예시: 파티클 시스템 생성 및 재생
         // GameObject effect = Instantiate(combinationSuccessEffectPrefab, position, Quaternion.identity);
         // Destroy(effect, 2f); // 2초 후 이펙트 제거
     }
+
+    /// <summary>
+    /// 조합 성공 이펙트를 재생합니다.
+    /// </summary>
+    private void PlayCombinationSuccessEffect(Vector3 position)
+    {
+        // 동기 버전 유지 (하위 호환성)
+        PlayCombinationSuccessEffectAsync(position, cancellationTokenSource.Token).Forget();
+    }
     
+    /// <summary>
+    /// 조합 실패 이펙트를 재생합니다. (비동기 버전)
+    /// </summary>
+    private async UniTask PlayCombinationFailEffectAsync(Vector3 position, CancellationToken cancellationToken = default)
+    {
+        // 조합 실패 이펙트 구현 (파티클, 사운드 등)
+        Debug.Log("조합 실패 이펙트 재생");
+        
+        // 이펙트 처리를 다음 프레임으로 분산
+        await UniTask.Yield(cancellationToken);
+        
+        // 예시: 파티클 시스템 생성 및 재생
+        // GameObject effect = Instantiate(combinationFailEffectPrefab, position, Quaternion.identity);
+        // Destroy(effect, 1.5f); // 1.5초 후 이펙트 제거
+    }
+
     /// <summary>
     /// 조합 실패 이펙트를 재생합니다.
     /// </summary>
     private void PlayCombinationFailEffect(Vector3 position)
     {
-        // 조합 실패 이펙트 구현 (파티클, 사운드 등)
-        Debug.Log("조합 실패 이펙트 재생");
-        
-        // 예시: 파티클 시스템 생성 및 재생
-        // GameObject effect = Instantiate(combinationFailEffectPrefab, position, Quaternion.identity);
-        // Destroy(effect, 1.5f); // 1.5초 후 이펙트 제거
+        // 동기 버전 유지 (하위 호환성)
+        PlayCombinationFailEffectAsync(position, cancellationTokenSource.Token).Forget();
+    }
+    
+    private void OnDestroy()
+    {
+        // CancellationToken 정리
+        cancellationTokenSource?.Cancel();
+        cancellationTokenSource?.Dispose();
     }
 }

@@ -42,7 +42,7 @@ public class TurretLayerSetup : EditorWindow
             return;
         }
         
-        TurretBase[] turrets = FindObjectsOfType<TurretBase>();
+        TurretBase[] turrets = FindObjectsByType<TurretBase>(FindObjectsSortMode.None);
         int count = 0;
         
         foreach (TurretBase turret in turrets)
