@@ -15,8 +15,6 @@ public class TurretBone : TurretBase
 {
     protected override void Update()
     {
-        // 뼈대 터렛은 공격 기능이 없으므로 TurretBase의 Update 로직을 실행하지 않습니다.
-        // 상태 전이(배치 -> 활성화)는 TurretBase의 OnMouseUp에 의해 처리됩니다.
         base.Update(); // 상태 전이를 위해 base.Update() 호출은 유지할 수 있습니다.
     }
 }

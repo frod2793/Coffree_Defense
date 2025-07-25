@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 8068202088615397684}
   - component: {fileID: 2043814593336153388}
   - component: {fileID: -1123165530577398693}
+  - component: {fileID: 1010231088187574947}
   m_Layer: 6
   m_Name: Turret_bone
   m_TagString: Turret
@@ -126,10 +127,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f71b78fabb7cbb84c90644e12661d369, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  currentState: 0
   attackPower: 10
   attackSpeed: 1
-  hp: 100
+  maxHp: 100
+  currentHp: 100
   destructionEffect: {fileID: 0}
 --- !u!54 &8068202088615397684
 Rigidbody:
@@ -222,3 +223,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 034bc47afcbf5e141a58d5c20b7808e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &1010231088187574947
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7483472109578787206}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da6875a0033b4f2da59c050129342b2f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  combiningEffectObject: {fileID: 0}
+  successEffectPrefab: {fileID: 0}
+  failEffectPrefab: {fileID: 0}

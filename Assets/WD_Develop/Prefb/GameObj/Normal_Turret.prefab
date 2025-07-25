@@ -136,6 +136,7 @@ GameObject:
   - component: {fileID: 471845348790075463}
   - component: {fileID: 703953446938512622}
   - component: {fileID: 3513126926343489817}
+  - component: {fileID: 8402369715261103055}
   m_Layer: 6
   m_Name: Normal_Turret
   m_TagString: Turret
@@ -245,17 +246,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6ae8a6bb0f7fb4f28b1ba7a692bcc275, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  currentState: 0
   attackPower: 10
   attackSpeed: 1
-  hp: 100
+  maxHp: 100
+  currentHp: 100
   destructionEffect: {fileID: 0}
   bulletPrefab: {fileID: 9185332407487830785, guid: 6aa837a1bf957443fb6a3e3b11e0d763, type: 3}
   firePoint: {fileID: 1506677782805472233}
-  terretHead: {fileID: 426027159090997811}
+  turretHead: {fileID: 426027159090997811}
   range: 15
   turnSpeed: 10
   enemyTag: Enemy
+  targetUpdateInterval: 0.5
+  bulletPoolMaxSize: 20
 --- !u!114 &703953446938512622
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -331,6 +334,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 034bc47afcbf5e141a58d5c20b7808e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &8402369715261103055
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1037895725824817058}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da6875a0033b4f2da59c050129342b2f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  combiningEffectObject: {fileID: 0}
+  successEffectPrefab: {fileID: 0}
+  failEffectPrefab: {fileID: 0}
 --- !u!1 &4472683593271291657
 GameObject:
   m_ObjectHideFlags: 0
