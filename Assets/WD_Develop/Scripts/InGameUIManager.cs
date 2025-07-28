@@ -5,8 +5,14 @@ using UnityEngine.UI;
 using Cysharp.Threading.Tasks;
 using System.Threading;
 
+/// <summary>
+/// 인게임 UI 관리자 - UniTask 기반 비동기 처리로 최적화
+/// 포탑 조합, 드래그앤드롭, 재화 관리를 담당합니다.
+/// </summary>
 public class InGameUIManager : MonoBehaviour
 {
+    #region 필드 및 속성
+    
     // 포탑 조합에 대한 결과오브젝트는 scriptable object로 관리합니다.
     // 조합 식 클래스를 따로 생성하여 조합에 따라 포탑의 프리펙 을 변경 
     // 포탑의 기본 구동 방식은 TurretBase 클래스를 상속받아 구현합니다.
@@ -18,160 +24,228 @@ public class InGameUIManager : MonoBehaviour
     // 조합 식이 활성화 되면 조합 결과 오브젝트가 활성화 됩니다.
     // 2초후 포탑이 활성화 됩니다.
     //포탑 인터페이스를 통해 게임 메니져에 설치된 포탑의 정보를 전달합니다.
-    
+
     // 포탑의 드래그앤 드랍이 활성화 되면 포탑이 비활성화 됩니다 (쿨타임 말풍선 형태의 ui 로 표시 )
     // 포탑의 위치가 고정되면 2초의 쿨타임후 포탑이 활성화 됩니다 
-    
+
     //확인해야될 사항 유니티 에셋 에 관한 조항 
-    
+
     /// <summary>
     /// 선택 ui 에서 드래그 하여 인게임 맵으로 마우스 포인트 이동시에 마우스 포인터 위치에 미리보기 아이템 프리펙을 표시합니다.
     /// </summary>
     
-    private bool isDraggingTurret = false; // TerretControl에서 터렛을 드래그 중인지 여부
-    private TerretControl terretControl; // TerretControl 참조
+    // 드래그 관련
+    private bool isDraggingTurret = false;
+    private TerretControl terretControl;
 
-    [Header( "In-Game UI Manager")]
-    [SerializeField] private GameObject inGameUI; // In-Game UI 오브젝트
-    
-    [SerializeField]
-    GameManager gameManager;
-    
-    [SerializeField]
-    List<Image> images; // UI에 표시할 이미지 리스트
-    
-    [SerializeField]
-    Button addTurretButton; // 터렛 추가 버튼
-    
-    [SerializeField]
-    List<GameObject> PrefabList; // UI에 표시할 프리팹 리스트
-    
-    [Header ("user data")]
-    [SerializeField] private TMPro.TextMeshProUGUI coinText; // 코인 텍스트 (UI용으로 변경)
-    [SerializeField] private TMPro.TextMeshProUGUI tpText; // TP 텍스트 (UI용으로 변경)
-    [SerializeField] private TMPro.TextMeshProUGUI waterPointText; // 워터 포인트 텍스트 (UI용으로 변경)
-    
-    // 재화 정보 업데이트 간격 (초)
+    [Header("In-Game UI Manager")]
+    [SerializeField] private GameObject inGameUI;
+    [SerializeField] private GameManager gameManager;
+    [SerializeField] private List<Image> images;
+    [SerializeField] private Button addTurretButton;
+    [SerializeField] private List<GameObject> PrefabList;
+
+    [Header("사용자 데이터")]
+    [SerializeField] private TMPro.TextMeshProUGUI coinText;
+    [SerializeField] private TMPro.TextMeshProUGUI tpText;
+    [SerializeField] private TMPro.TextMeshProUGUI waterPointText;
+
+    [Header("성능 설정")]
     [SerializeField] private float currencyUpdateInterval = 0.5f;
-    private float lastCurrencyUpdateTime = 0f;
+    [SerializeField] private int eventTriggerBatchSize = 5; // 이벤트 트리거 설정 시 프레임 분산 크기
+
+    [Header("게임 상태")]
+    [SerializeField] private TMPro.TextMeshProUGUI GameCountDownText; // 게임 카운트다운 텍스트
+    [SerializeField] private float countdownDuration = 10f; // 카운트다운 시간 (초)
+    [SerializeField] private bool enableCountdown = true; // 카운트다운 활성화 여부
+    
+    // 게임 상태 관리
+    private bool isGameStarted = false;
+    private bool isCountdownActive = false;
+
     
     // UniTask 관련
     private CancellationTokenSource cancellationTokenSource;
     private bool isInitialized = false;
     
+    // 성능 최적화를 위한 캐시
+    private DataManger.CurrencyInfo lastCurrencyInfo;
+    private bool hasDataManagerEvents = false;
+
+    #endregion
+
+    #region 유니티 생명주기
+
     async void Start()
     {
         cancellationTokenSource = new CancellationTokenSource();
-        
-        // 비동기 초기화 시작
         await InitializeAsync(cancellationTokenSource.Token);
     }
-    
+
+    void OnDestroy()
+    {
+        CleanupResources();
+    }
+
+    #endregion
+
+    #region 초기화
+
     private async UniTask InitializeAsync(CancellationToken cancellationToken)
     {
-        // TerretControl 찾기 (비동기)
+        try
+        {
+            // 컴포넌트 찾기
+            await FindRequiredComponentsAsync(cancellationToken);
+            
+            // 이벤트 시스템 설정
+            await SetupEventSystemAsync(cancellationToken);
+            
+            // 시스템 검증
+            await ValidateSystemsAsync(cancellationToken);
+            
+            // 재화 UI 초기화
+            await InitializeCurrencyUIAsync(cancellationToken);
+            
+            // 게임 카운트다운 시작
+            if (enableCountdown && GameCountDownText != null)
+            {
+                await StartGameCountdownAsync(cancellationToken);
+            }
+            
+            // 주기적 업데이트 시작
+            StartPeriodicUpdateAsync(cancellationToken).Forget();
+            
+            isInitialized = true;
+            Debug.Log("[InGameUIManager] 초기화 완료");
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[InGameUIManager] 초기화 실패: {ex.Message}");
+        }
+    }
+
+    private async UniTask FindRequiredComponentsAsync(CancellationToken cancellationToken)
+    {
         await UniTask.Yield(cancellationToken);
-        terretControl = FindFirstObjectByType<TerretControl>();
+        
         if (terretControl == null)
         {
-            Debug.LogError("TerretControl을 찾을 수 없습니다.");
+            terretControl = FindFirstObjectByType<TerretControl>();
+            if (terretControl == null)
+            {
+                Debug.LogError("[InGameUIManager] TerretControl을 찾을 수 없습니다.");
+            }
         }
-        
-        // 이벤트 트리거 설정을 다음 프레임으로 분산
+    }
+
+    private async UniTask SetupEventSystemAsync(CancellationToken cancellationToken)
+    {
         await SetupEventTriggersAsync(cancellationToken);
-        
-        // 버튼 이벤트 설정
         await SetupButtonEventsAsync(cancellationToken);
-        
-        // 레이어 설정 체크
+    }
+
+    private async UniTask ValidateSystemsAsync(CancellationToken cancellationToken)
+    {
         await UniTask.Yield(cancellationToken);
         CheckLayerSetup();
-        
-        // 재화 UI 초기화
-        await InitializeCurrencyUIAsync(cancellationToken);
-        
-        // 주기적 업데이트 시작
-        StartPeriodicUpdateAsync(cancellationToken).Forget();
-        
-        isInitialized = true;
-        Debug.Log("[InGameUIManager] 초기화 완료");
     }
-    
+
+    #endregion
+
+    #region 이벤트 시스템 설정
+
     private async UniTask SetupEventTriggersAsync(CancellationToken cancellationToken)
     {
-        // 이벤트 트리거 에 이벤트 연결을 설정합니다.
+        if (images?.Count == 0)
+        {
+            Debug.LogWarning("[InGameUIManager] 드래그 가능한 이미지가 설정되지 않았습니다.");
+            return;
+        }
+
         for (int i = 0; i < images.Count; i++)
         {
-            Image image = images[i];
-            EventTrigger trigger = image.GetComponent<EventTrigger>();
-            if (trigger == null)
-            {
-                trigger = image.gameObject.AddComponent<EventTrigger>();
-            }
+            var image = images[i];
+            if (image == null) continue;
 
-            // Begin Drag 이벤트 설정
-            EventTrigger.Entry beginDragEntry = new EventTrigger.Entry();
-            beginDragEntry.eventID = EventTriggerType.BeginDrag;
-            int index = i; // 클로저 문제를 피하기 위해 인덱스 복사
-            beginDragEntry.callback.AddListener((data) => { OnBeginDrag(index); });
-            trigger.triggers.Add(beginDragEntry);
+            SetupImageEventTrigger(image, i);
 
-            // End Drag 이벤트 설정
-            EventTrigger.Entry endDragEntry = new EventTrigger.Entry();
-            endDragEntry.eventID = EventTriggerType.EndDrag;
-            endDragEntry.callback.AddListener((data) => { OnEndDrag(); });
-            trigger.triggers.Add(endDragEntry);
-            
-            // 프레임 분산을 위해 일정 간격으로 yield
-            if (i % 5 == 0) // 5개마다 한 프레임 대기
+            // 프레임 분산 처리 - 성능 최적화
+            if (i % eventTriggerBatchSize == 0)
             {
                 await UniTask.Yield(cancellationToken);
             }
         }
     }
-    
+
+    private void SetupImageEventTrigger(Image image, int index)
+    {
+        var trigger = image.GetComponent<EventTrigger>() ?? image.gameObject.AddComponent<EventTrigger>();
+        
+        trigger.triggers.Clear(); // 기존 트리거 정리
+
+        // Begin Drag 이벤트
+        var beginDragEntry = new EventTrigger.Entry
+        {
+            eventID = EventTriggerType.BeginDrag
+        };
+        beginDragEntry.callback.AddListener((data) => OnBeginDrag(index));
+        trigger.triggers.Add(beginDragEntry);
+
+        // End Drag 이벤트
+        var endDragEntry = new EventTrigger.Entry
+        {
+            eventID = EventTriggerType.EndDrag
+        };
+        endDragEntry.callback.AddListener((data) => OnEndDrag());
+        trigger.triggers.Add(endDragEntry);
+    }
+
     private async UniTask SetupButtonEventsAsync(CancellationToken cancellationToken)
     {
         await UniTask.Yield(cancellationToken);
-        
-        addTurretButton.onClick.AddListener(() =>
+
+        if (addTurretButton != null)
         {
-            // 터렛 추가 버튼 클릭 시 TerretControl에 알림
-            if (terretControl != null)
-            {
-                terretControl.SetAddTurret();
-            }
-        });
-    }
-    
-    // 주기적 업데이트를 UniTask로 처리
-    private async UniTask StartPeriodicUpdateAsync(CancellationToken cancellationToken)
-    {
-        while (!cancellationToken.IsCancellationRequested && this != null)
-        {
-            try
-            {
-                // 재화 정보 주기적 업데이트
-                await UpdateCurrencyDisplayAsync(cancellationToken);
-                
-                // 다음 업데이트까지 대기 - UniTask.Delay 매개변수 수정
-                await UniTask.Delay(System.TimeSpan.FromSeconds(currencyUpdateInterval), 
-                    DelayType.DeltaTime, PlayerLoopTiming.Update, cancellationToken);
-            }
-            catch (System.OperationCanceledException)
-            {
-                // 정상적인 취소
-                break;
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogError($"[InGameUIManager] 주기적 업데이트 오류: {ex.Message}");
-                // 오류 발생 시 잠시 대기 후 재시도 - UniTask.Delay 매개변수 수정
-                await UniTask.Delay(1000, DelayType.DeltaTime, PlayerLoopTiming.Update, cancellationToken);
-            }
+            addTurretButton.onClick.RemoveAllListeners(); // 기존 리스너 정리
+            addTurretButton.onClick.AddListener(OnAddTurretButtonClicked);
         }
     }
-    
+
+    #endregion
+
+    #region 버튼 이벤트 핸들러
+
+    private void OnAddTurretButtonClicked()
+    {
+        if (terretControl == null)
+        {
+            Debug.LogWarning("[InGameUIManager] TerretControl이 없습니다.");
+            return;
+        }
+
+        // TP 확인 및 소모 - 성능 최적화된 체크
+        if (!DataManger.IsAvailable())
+        {
+            Debug.LogWarning("[InGameUIManager] DataManager를 사용할 수 없습니다.");
+            return;
+        }
+
+        var currentTP = DataManger.Instance.GetTP();
+        if (currentTP <= 0)
+        {
+            Debug.LogWarning("[InGameUIManager] TP가 부족하여 터렛을 추가할 수 없습니다.");
+            return;
+        }
+
+        terretControl.SetAddTurret();
+        DataManger.Instance.SpendTP(1);
+    }
+
+    #endregion
+
+    #region 드래그 앤 드롭 시스템
+
     /// <summary>
     /// TerretControl에서 터렛 드래그 상태를 설정합니다.
     /// </summary>
@@ -181,108 +255,159 @@ public class InGameUIManager : MonoBehaviour
     }
 
     /// <summary>
-    /// UI 이미지에서 드래그를 시작할 때 호출됩니다. (EventTrigger에 연결 필요)
+    /// UI 이미지에서 드래그를 시작할 때 호출됩니다.
     /// </summary>
-    /// <param name="prefabIndex">PrefabList에 있는 프리팹의 인덱스</param>
     public void OnBeginDrag(int prefabIndex)
     {
-        // 터렛 드래그 중일 때는 아이템 드래그 허용하지 않음
         if (isDraggingTurret || terretControl == null) return;
-        
-        if (prefabIndex >= 0 && prefabIndex < PrefabList.Count)
+
+        if (IsValidPrefabIndex(prefabIndex))
         {
-            GameObject selectedPrefab = PrefabList[prefabIndex];
+            var selectedPrefab = PrefabList[prefabIndex];
             if (selectedPrefab != null)
             {
-                // TerretControl에 아이템 드래그 시작 알림
                 terretControl.StartItemDrag(selectedPrefab);
             }
         }
     }
 
     /// <summary>
-    /// 드래그를 놓았을 때 호출됩니다. (EventTrigger에 연결 필요)
+    /// 드래그를 놓았을 때 호출됩니다.
     /// </summary>
     public void OnEndDrag()
     {
-        // TerretControl에 아이템 드래그 종료 알림
-        if (terretControl != null)
-        {
-            terretControl.EndItemDrag();
-        }
+        terretControl?.EndItemDrag();
     }
-    
+
+    private bool IsValidPrefabIndex(int index)
+    {
+        return PrefabList?.Count > 0 && index >= 0 && index < PrefabList.Count;
+    }
+
+    #endregion
+
+    #region 재화 UI 시스템
+
     /// <summary>
-    /// 재화 UI를 초기화합니다. (비동기)
+    /// 재화 UI를 초기화합니다.
     /// </summary>
     private async UniTask InitializeCurrencyUIAsync(CancellationToken cancellationToken)
     {
-        // DataManager가 사용 가능한지 확인
         if (DataManger.IsAvailable())
         {
-            // DataManager 이벤트 구독
-            DataManger.Instance.OnCoinChanged += UpdateCoinDisplay;
-            DataManger.Instance.OnTPChanged += UpdateTpDisplay;
-            DataManger.Instance.OnWaterPointChanged += UpdateWaterPointDisplay;
-            
-            // 초기 재화 정보 표시 (비동기)
-            await UniTask.Yield(cancellationToken);
-            var currencyInfo = DataManger.Instance.GetAllCurrencyInfo();
-            UpdateCoinDisplay(currencyInfo.coin);
-            UpdateTpDisplay(currencyInfo.tp);
-            UpdateWaterPointDisplay(currencyInfo.waterPoint);
+            await SubscribeToDataManagerEventsAsync(cancellationToken);
+            await UpdateAllCurrencyDisplaysAsync(cancellationToken);
             
             Debug.Log("[InGameUIManager] 재화 UI 초기화 완료");
         }
         else
         {
-            // DataManager가 없는 경우 기본값 표시
             Debug.LogWarning("[InGameUIManager] DataManager를 찾을 수 없어 기본 재화 정보를 표시합니다.");
-            UpdateCoinDisplay(0);
-            UpdateTpDisplay(0);
-            UpdateWaterPointDisplay(0);
+            SetDefaultCurrencyDisplay();
         }
     }
-    
+
+    private async UniTask SubscribeToDataManagerEventsAsync(CancellationToken cancellationToken)
+    {
+        await UniTask.Yield(cancellationToken);
+        
+        if (!hasDataManagerEvents && DataManger.Instance != null)
+        {
+            DataManger.Instance.OnCoinChanged += UpdateCoinDisplay;
+            DataManger.Instance.OnTPChanged += UpdateTpDisplay;
+            DataManger.Instance.OnWaterPointChanged += UpdateWaterPointDisplay;
+            hasDataManagerEvents = true;
+        }
+    }
+
+    private async UniTask UpdateAllCurrencyDisplaysAsync(CancellationToken cancellationToken)
+    {
+        await UniTask.Yield(cancellationToken);
+        
+        var currencyInfo = DataManger.Instance.GetAllCurrencyInfo();
+        lastCurrencyInfo = currencyInfo;
+        
+        UpdateCoinDisplay(currencyInfo.coin);
+        UpdateTpDisplay(currencyInfo.tp);
+        UpdateWaterPointDisplay(currencyInfo.waterPoint);
+    }
+
+    private void SetDefaultCurrencyDisplay()
+    {
+        UpdateCoinDisplay(0);
+        UpdateTpDisplay(0);
+        UpdateWaterPointDisplay(0);
+    }
+
+    #endregion
+
+    #region 재화 표시 업데이트
+
     /// <summary>
-    /// 주기적으로 재화 정보를 업데이트합니다. (비동기)
+    /// 주기적으로 재화 정보를 업데이트합니다.
     /// </summary>
+    private async UniTask StartPeriodicUpdateAsync(CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested && this != null)
+        {
+            try
+            {
+                await UpdateCurrencyDisplayAsync(cancellationToken);
+                await UniTask.Delay(System.TimeSpan.FromSeconds(currencyUpdateInterval),
+                    DelayType.DeltaTime, PlayerLoopTiming.Update, cancellationToken);
+            }
+            catch (System.OperationCanceledException)
+            {
+                break;
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[InGameUIManager] 주기적 업데이트 오류: {ex.Message}");
+                await UniTask.Delay(1000, DelayType.DeltaTime, PlayerLoopTiming.Update, cancellationToken);
+            }
+        }
+    }
+
     private async UniTask UpdateCurrencyDisplayAsync(CancellationToken cancellationToken)
     {
-        // DataManager가 사용 가능한 경우에만 업데이트
-        if (DataManger.IsAvailable())
+        if (!DataManger.IsAvailable()) return;
+
+        await UniTask.Yield(cancellationToken);
+
+        var currencyInfo = DataManger.Instance.GetAllCurrencyInfo();
+
+        // 성능 최적화: 값이 변경된 경우에만 업데이트
+        if (!CurrencyInfoEquals(currencyInfo, lastCurrencyInfo))
         {
-            await UniTask.Yield(cancellationToken);
-            
-            var currencyInfo = DataManger.Instance.GetAllCurrencyInfo();
-            
-            // UI 텍스트가 현재 값과 다른 경우에만 업데이트 (성능 최적화)
-            if (coinText != null && coinText.text != $"코인: {currencyInfo.coin:N0}")
-            {
-                UpdateCoinDisplay(currencyInfo.coin);
-            }
-            
-            if (tpText != null && tpText.text != $"TP: {currencyInfo.tp:N0}")
-            {
-                UpdateTpDisplay(currencyInfo.tp);
-            }
-            
-            if (waterPointText != null && waterPointText.text != $"워터포인트: {currencyInfo.waterPoint:N0}")
-            {
-                UpdateWaterPointDisplay(currencyInfo.waterPoint);
-            }
+            UpdateChangedCurrencyDisplays(currencyInfo);
+            lastCurrencyInfo = currencyInfo;
         }
     }
-    
-    /// <summary>
-    /// 코인 표시를 업데이트합니다.
-    /// </summary>
+
+    private bool CurrencyInfoEquals(DataManger.CurrencyInfo info1, DataManger.CurrencyInfo info2)
+    {
+        return info1.coin == info2.coin && 
+               info1.tp == info2.tp && 
+               info1.waterPoint == info2.waterPoint;
+    }
+
+    private void UpdateChangedCurrencyDisplays(DataManger.CurrencyInfo currencyInfo)
+    {
+        if (currencyInfo.coin != lastCurrencyInfo.coin)
+            UpdateCoinDisplay(currencyInfo.coin);
+
+        if (currencyInfo.tp != lastCurrencyInfo.tp)
+            UpdateTpDisplay(currencyInfo.tp);
+
+        if (currencyInfo.waterPoint != lastCurrencyInfo.waterPoint)
+            UpdateWaterPointDisplay(currencyInfo.waterPoint);
+    }
+
     private void UpdateCoinDisplay(int amount)
     {
         if (coinText != null)
         {
             coinText.text = $"코인: {amount:N0}";
-            // 색상 변경 (선택사항 - 재화 부족 시 빨간색 표시 등)
             coinText.color = amount > 0 ? Color.black : Color.red;
         }
         else
@@ -290,33 +415,31 @@ public class InGameUIManager : MonoBehaviour
             Debug.LogWarning("[InGameUIManager] 코인 텍스트 UI가 할당되지 않았습니다!");
         }
     }
-    
-    /// <summary>
-    /// TP 표시를 업데이트합니다.
-    /// </summary>
+
     private void UpdateTpDisplay(int amount)
     {
         if (tpText != null)
         {
             tpText.text = $"TP: {amount:N0}";
-            // 색상 변경 (선택사항)
             tpText.color = amount > 0 ? Color.black : Color.red;
+
+            // 터렛 추가 버튼 상태 업데이트
+            if (addTurretButton != null)
+            {
+                addTurretButton.interactable = amount > 0;
+            }
         }
         else
         {
             Debug.LogWarning("[InGameUIManager] TP 텍스트 UI가 할당되지 않았습니다!");
         }
     }
-    
-    /// <summary>
-    /// 워터포인트 표시를 업데이트합니다.
-    /// </summary>
+
     private void UpdateWaterPointDisplay(int amount)
     {
         if (waterPointText != null)
         {
             waterPointText.text = $"워터포인트: {amount:N0}";
-            // 색상 변경 (선택사항)
             waterPointText.color = amount > 0 ? Color.black : Color.red;
         }
         else
@@ -324,113 +447,352 @@ public class InGameUIManager : MonoBehaviour
             Debug.LogWarning("[InGameUIManager] 워터포인트 텍스트 UI가 할당되지 않았습니다!");
         }
     }
-    
+
+    #endregion
+
+    #region 재화 관리
+
     /// <summary>
     /// 재화 사용 가능 여부를 확인합니다.
     /// </summary>
     public bool CanAffordCost(int coinCost, int tpCost, int waterPointCost)
     {
         if (!DataManger.IsAvailable()) return false;
-        
+
         var currencyInfo = DataManger.Instance.GetAllCurrencyInfo();
-        return currencyInfo.coin >= coinCost && 
-               currencyInfo.tp >= tpCost && 
+        return currencyInfo.coin >= coinCost &&
+               currencyInfo.tp >= tpCost &&
                currencyInfo.waterPoint >= waterPointCost;
     }
-    
+
     /// <summary>
-    /// 재화를 소모합니다. (터렛 구매, 업그레이드 등에 사용) - 비동기 버전
+    /// 재화를 소모합니다. (���동기 버전)
     /// </summary>
-    public async UniTask<bool> SpendCurrencyAsync(int coinCost, int tpCost, int waterPointCost, CancellationToken cancellationToken = default)
+    public async UniTask<bool> SpendCurrencyAsync(int coinCost, int tpCost, int waterPointCost,
+        CancellationToken cancellationToken = default)
     {
         if (!DataManger.IsAvailable()) return false;
-        
-        // 재화 충분한지 확인
+
         if (!CanAffordCost(coinCost, tpCost, waterPointCost))
         {
             Debug.LogWarning($"[InGameUIManager] 재화 부족! 필요: 코인({coinCost}), TP({tpCost}), 워터포인트({waterPointCost})");
             return false;
         }
-        
-        // 재화 소모를 비동기로 처리
+
+        bool success = await ProcessCurrencySpendingAsync(coinCost, tpCost, waterPointCost, cancellationToken);
+
+        if (success)
+        {
+            Debug.Log($"[InGameUIManager] 재화 소모 성공! 코인(-{coinCost}), TP(-{tpCost}), 워터포인트(-{waterPointCost})");
+        }
+
+        return success;
+    }
+
+    /// <summary>
+    /// 재화를 소모합니다. (동기 버전 - 하위 호환성)
+    /// </summary>
+    public bool SpendCurrency(int coinCost, int tpCost, int waterPointCost)
+    {
+        if (!DataManger.IsAvailable()) return false;
+
+        if (!CanAffordCost(coinCost, tpCost, waterPointCost))
+        {
+            Debug.LogWarning($"[InGameUIManager] 재화 부족! 필요: 코인({coinCost}), TP({tpCost}), 워터포인트({waterPointCost})");
+            return false;
+        }
+
+        bool success = ProcessCurrencySpending(coinCost, tpCost, waterPointCost);
+
+        if (success)
+        {
+            Debug.Log($"[InGameUIManager] 재화 소모 성공! 코인(-{coinCost}), TP(-{tpCost}), 워터포인트(-{waterPointCost})");
+        }
+
+        return success;
+    }
+
+    private async UniTask<bool> ProcessCurrencySpendingAsync(int coinCost, int tpCost, int waterPointCost, CancellationToken cancellationToken)
+    {
         bool success = true;
+        
         if (coinCost > 0) success &= await DataManger.Instance.SpendCoinAsync(coinCost, cancellationToken);
         if (tpCost > 0) success &= await DataManger.Instance.SpendTPAsync(tpCost, cancellationToken);
         if (waterPointCost > 0) success &= await DataManger.Instance.SpendWaterPointAsync(waterPointCost, cancellationToken);
         
-        if (success)
-        {
-            Debug.Log($"[InGameUIManager] 재화 소모 성공! 코인(-{coinCost}), TP(-{tpCost}), 워터포인트(-{waterPointCost})");
-        }
-        
         return success;
     }
-    
-    // 동기 버전 유지 (하위 호환성)
-    public bool SpendCurrency(int coinCost, int tpCost, int waterPointCost)
+
+    private bool ProcessCurrencySpending(int coinCost, int tpCost, int waterPointCost)
     {
-        if (!DataManger.IsAvailable()) return false;
-        
-        // 재화 충분한지 확인
-        if (!CanAffordCost(coinCost, tpCost, waterPointCost))
-        {
-            Debug.LogWarning($"[InGameUIManager] 재화 부족! 필요: 코인({coinCost}), TP({tpCost}), 워터포인트({waterPointCost})");
-            return false;
-        }
-        
-        // 재화 소모
         bool success = true;
+        
         if (coinCost > 0) success &= DataManger.Instance.SpendCoin(coinCost);
         if (tpCost > 0) success &= DataManger.Instance.SpendTP(tpCost);
         if (waterPointCost > 0) success &= DataManger.Instance.SpendWaterPoint(waterPointCost);
         
-        if (success)
-        {
-            Debug.Log($"[InGameUIManager] 재화 소모 성공! 코인(-{coinCost}), TP(-{tpCost}), 워터포인트(-{waterPointCost})");
-        }
-        
         return success;
     }
-    
+
+    #endregion
+
+    #region 게임 카운트다운 시스템
+
     /// <summary>
-    /// 필요한 레이어가 존재하는지 확인
+    /// 게임 시작 전 카운트다운��� 실행합니다.
     /// </summary>
-    private void CheckLayerSetup()
+    private async UniTask StartGameCountdownAsync(CancellationToken cancellationToken)
     {
-        int turretLayer = LayerMask.NameToLayer("Turret");
-        if (turretLayer == -1)
+        if (isCountdownActive || GameCountDownText == null)
         {
-            Debug.LogError("'Turret' 레이어가 존재하지 않습니다! 프로젝트 설정에서 레이어를 추가해주세요.");
+            Debug.LogWarning("[InGameUIManager] 카운트다운이 이미 실행 중이거나 텍스트가 없습니다.");
+            return;
         }
-        
-        int groundLayer = LayerMask.NameToLayer("Ground");
-        if (groundLayer == -1)
+
+        isCountdownActive = true;
+        float remainingTime = countdownDuration;
+
+        Debug.Log($"[InGameUIManager] 게임 카운트다운 시작: {countdownDuration}초");
+
+        try
         {
-            Debug.LogError("'Ground' 레이어가 존재하지 않습니다! 프로젝트 설정에서 레이어를 추가해주세요.");
+            // 카운트다운 UI 활성화
+            if (GameCountDownText.gameObject != null)
+            {
+                GameCountDownText.gameObject.SetActive(true);
+            }
+
+            while (remainingTime > 0 && !cancellationToken.IsCancellationRequested)
+            {
+                // 카운트다운 텍스트 업데이트
+                UpdateCountdownDisplay(remainingTime);
+
+                // 1초 대기
+                await UniTask.Delay(1000, DelayType.DeltaTime, PlayerLoopTiming.Update, cancellationToken);
+                remainingTime -= 1f;
+            }
+
+            // 카운트다운 완료
+            await OnCountdownCompleteAsync(cancellationToken);
         }
-        
-        int previewLayer = LayerMask.NameToLayer("Preview");
-        if (previewLayer == -1)
+        catch (System.OperationCanceledException)
         {
-            Debug.LogWarning("'Preview' 레이어가 존재하지 않습니다. 기존 레이어를 사용합니다.");
+            Debug.Log("[InGameUIManager] 카운트다운이 취소되었습니다.");
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[InGameUIManager] 카운트다운 오류: {ex.Message}");
+        }
+        finally
+        {
+            isCountdownActive = false;
         }
     }
 
     /// <summary>
-    /// 컴포넌트 파괴 시 정리 작업
+    /// 카운트다운 텍스트를 업데이트합니다.
     /// </summary>
-    void OnDestroy()
+    private void UpdateCountdownDisplay(float remainingTime)
+    {
+        if (GameCountDownText == null) return;
+
+        int seconds = Mathf.CeilToInt(remainingTime);
+        
+        // 시간에 따른 다른 메시지 표시
+        if (seconds > 5)
+        {
+            GameCountDownText.text = $"게임 시작까지\n{seconds}초";
+            GameCountDownText.color = Color.black;
+        }
+        else if (seconds > 0)
+        {
+            GameCountDownText.text = $"{seconds}";
+            GameCountDownText.color = Color.red;
+            
+            // 마지막 5초는 크기 효과 추가
+            float scale = 1f + (6 - seconds) * 0.2f;
+            GameCountDownText.transform.localScale = Vector3.one * scale;
+        }
+        else
+        {
+            GameCountDownText.text = "START!";
+            GameCountDownText.color = Color.green;
+            GameCountDownText.transform.localScale = Vector3.one * 1.5f;
+        }
+    }
+
+    /// <summary>
+    /// 카운트다운 완료 시 호출됩니다.
+    /// </summary>
+    private async UniTask OnCountdownCompleteAsync(CancellationToken cancellationToken)
+    {
+        Debug.Log("[InGameUIManager] 카운트다운 완료! 게임 시작");
+
+        // "START!" 메시지를 잠시 표시
+        UpdateCountdownDisplay(0);
+        await UniTask.Delay(1000, DelayType.DeltaTime, PlayerLoopTiming.Update, cancellationToken);
+
+        // 카운트다운 텍스트 비활성화
+        if (GameCountDownText != null && GameCountDownText.gameObject != null)
+        {
+            GameCountDownText.gameObject.SetActive(false);
+        }
+
+        // 게임 시작 상태로 변경
+        isGameStarted = true;
+
+        // GameManager에 게임 시작 알림
+        await NotifyGameStartAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// GameManager에 게임 시작을 알립니다.
+    /// </summary>
+    private async UniTask NotifyGameStartAsync(CancellationToken cancellationToken)
+    {
+        await UniTask.Yield(cancellationToken);
+
+        if (gameManager != null)
+        {
+            // GameManager에 게임 시작 메서드가 있다면 호출
+            var startGameMethod = gameManager.GetType().GetMethod("StartGame");
+            if (startGameMethod != null)
+            {
+                startGameMethod.Invoke(gameManager, null);
+                Debug.Log("[InGameUIManager] GameManager에 게임 시작 알림 완료");
+            }
+            else
+            {
+                Debug.LogWarning("[InGameUIManager] GameManager에 StartGame 메서드가 없습니다.");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("[InGameUIManager] GameManager가 할당되지 않았습니다.");
+        }
+    }
+
+    /// <summary>
+    /// 카운트다운을 수동으로 시작합니다.
+    /// </summary>
+    public void StartCountdown()
+    {
+        if (!isCountdownActive && enableCountdown)
+        {
+            StartGameCountdownAsync(cancellationTokenSource.Token).Forget();
+        }
+    }
+
+    /// <summary>
+    /// 카운트다운을 중지합니다.
+    /// </summary>
+    public void StopCountdown()
+    {
+        if (isCountdownActive)
+        {
+            cancellationTokenSource?.Cancel();
+            
+            if (GameCountDownText != null && GameCountDownText.gameObject != null)
+            {
+                GameCountDownText.gameObject.SetActive(false);
+            }
+            
+            isCountdownActive = false;
+            Debug.Log("[InGameUIManager] 카운트다운이 중지되었습니다.");
+        }
+    }
+
+    /// <summary>
+    /// 카운트다운 시간을 설정합니다.
+    /// </summary>
+    public void SetCountdownDuration(float duration)
+    {
+        if (duration > 0)
+        {
+            countdownDuration = duration;
+            Debug.Log($"[InGameUIManager] 카운트다운 시간이 {duration}초로 설정되었습니다.");
+        }
+    }
+
+    #endregion
+
+    #region 시스템 검증
+
+    /// <summary>
+    /// 필요한 레이어가 존재하는지 확인합니다.
+    /// </summary>
+    private void CheckLayerSetup()
+    {
+        var requiredLayers = new[] { "Turret", "Ground", "Preview" };
+        var missingLayers = new List<string>();
+
+        foreach (var layerName in requiredLayers)
+        {
+            if (LayerMask.NameToLayer(layerName) == -1)
+            {
+                missingLayers.Add(layerName);
+            }
+        }
+
+        if (missingLayers.Count > 0)
+        {
+            Debug.LogError($"[InGameUIManager] 다음 레이어가 누락되었습니다: {string.Join(", ", missingLayers)}");
+        }
+    }
+
+    #endregion
+
+    #region 리소스 정리
+
+    /// <summary>
+    /// 리소스 정리
+    /// </summary>
+    private void CleanupResources()
     {
         // CancellationToken 정리
         cancellationTokenSource?.Cancel();
         cancellationTokenSource?.Dispose();
-        
+
         // 이벤트 구독 해제
-        if (DataManger.Instance != null)
+        if (hasDataManagerEvents && DataManger.Instance != null)
         {
             DataManger.Instance.OnCoinChanged -= UpdateCoinDisplay;
             DataManger.Instance.OnTPChanged -= UpdateTpDisplay;
             DataManger.Instance.OnWaterPointChanged -= UpdateWaterPointDisplay;
+            hasDataManagerEvents = false;
         }
+
+        Debug.Log("[InGameUIManager] 리소스 정리 완료");
     }
+
+    #endregion
+
+    #region 공개 속성
+
+    /// <summary>
+    /// UI 매니저가 초기화되었는지 확인합니다.
+    /// </summary>
+    public bool IsInitialized => isInitialized;
+
+    /// <summary>
+    /// 현재 터렛을 드래그 중인지 확인합니다.
+    /// </summary>
+    public bool IsDraggingTurret => isDraggingTurret;
+
+    /// <summary>
+    /// 게임이 시작되었는지 확인합니다.
+    /// </summary>
+    public bool IsGameStarted => isGameStarted;
+
+    /// <summary>
+    /// 카운트다운이 활성화되어 있는지 확인합니다.
+    /// </summary>
+    public bool IsCountdownActive => isCountdownActive;
+
+    /// <summary>
+    /// 남은 카운트다운 시간을 반환합니다.
+    /// </summary>
+    public float CountdownDuration => countdownDuration;
+
+    #endregion
 }

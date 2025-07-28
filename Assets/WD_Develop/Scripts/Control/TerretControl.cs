@@ -162,7 +162,7 @@ public class TerretControl : MonoBehaviour
                     if (terretBase.CanBeMoved())
                     {
                         // 터렛을 배치 모드로 전환
-                        terretBase.currentState = TurretBase.TerretState.Placement;
+                        terretBase.SetPlacementMode();
                         
                         selectedTurret = hit.transform;
                         selectedTurretBase = terretBase;
@@ -436,11 +436,19 @@ public class TerretControl : MonoBehaviour
             
             Debug.Log($"조합 성공! {highlightedTurret.name} + {selectedItemPrefab.name} = {resultPrefab.name}");
             
+            // 기존 터렛의 위치와 회전 저장
+            Vector3 turretPosition = highlightedTurret.transform.position;
+            Quaternion turretRotation = highlightedTurret.transform.rotation;
+            
+            // 기존 터렛을 먼저 안전하게 파괴
+            await SafelyDestroyTurretAsync(highlightedTurret, cancellationToken);
+            highlightedTurret = null;
+            
             // 조합 처리를 다음 프레임으로 분산
             await UniTask.Yield(cancellationToken);
             
-            // 조합 성공
-            GameObject newTurretObj = Instantiate(resultPrefab.gameObject, highlightedTurret.transform.position, highlightedTurret.transform.rotation);
+            // 새 터렛 생성
+            GameObject newTurretObj = Instantiate(resultPrefab.gameObject, turretPosition, turretRotation);
             TurretBase newTurretBase = newTurretObj.GetComponent<TurretBase>();
             
             // 새 터렛의 레이어 설정
@@ -448,10 +456,9 @@ public class TerretControl : MonoBehaviour
             
             if (newTurretBase != null)
             {
-                // 조합된 터렛이 바로 활성화되도록 상태를 변경합니다.
-                newTurretBase.OnMouseUp();
+                // 터렛을 즉시 Idle 상태로 설정하여 활성화
+                await ActivateNewTurretAsync(newTurretBase, cancellationToken);
             }
-            Destroy(highlightedTurret.gameObject); // 기존 터렛 파괴
         }
         else
         {
@@ -462,10 +469,90 @@ public class TerretControl : MonoBehaviour
             await highlightedTurret.EndCombiningAsync(cancellationToken);
             
             Debug.LogWarning($"조합 실패: {highlightedTurret.name} + {selectedItemPrefab.name}");
+            
+            highlightedTurret.SetOutline(false);
+            highlightedTurret = null;
         }
+    }
+    
+    /// <summary>
+    /// 새로 생성된 터렛을 활성화합니다.
+    /// </summary>
+    private async UniTask ActivateNewTurretAsync(TurretBase newTurret, CancellationToken cancellationToken)
+    {
+        if (newTurret == null) return;
         
-        highlightedTurret.SetOutline(false);
-        highlightedTurret = null;
+        try
+        {
+            // 터렛이 완전히 초기화될 때까지 기다림 (최대 3초)
+            float timeout = 3f;
+            float elapsed = 0f;
+            
+            while (elapsed < timeout && !cancellationToken.IsCancellationRequested)
+            {
+                // 터렛이 초기화되었는지 확인
+                if (newTurret != null && newTurret.gameObject != null && newTurret.enabled)
+                {
+                    Debug.Log($"새 터렛 {newTurret.name} 초기화 확인됨");
+                    break;
+                }
+                
+                elapsed += 0.1f;
+                await UniTask.Delay(100, DelayType.DeltaTime, PlayerLoopTiming.Update, cancellationToken);
+            }
+            
+            // 터렛을 Placement 상태로 설정하고 OnMouseUp() 호출하여 2초 대기 후 활성화
+            if (newTurret != null)
+            {
+                // Placement 상태로 설정하여 정상적인 활성화 과정을 거치도록 함
+                newTurret.ForceSetState(TurretBase.TerretState.Placement);
+                
+                // OnMouseUp() 호출하여 2초 대기 후 활성화 (정상적인 터렛 활성화 과정)
+                newTurret.OnMouseUp();
+                
+                Debug.Log($"조합된 터렛 {newTurret.name} 활성화 시작 (2초 후 완료)");
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"새 터렛 활성화 ��� 오류: {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// 터렛을 안전하게 파괴합니다 (비동기 작업 취소 후)
+    /// </summary>
+    private async UniTask SafelyDestroyTurretAsync(TurretBase turret, CancellationToken cancellationToken)
+    {
+        if (turret == null) return;
+        
+        try
+        {
+            // 터렛의 아웃라인 비활성화
+            turret.SetOutline(false);
+            
+            // 터렛의 상태를 파괴됨으로 변경하여 비동기 작업들이 조기 종료되도록 함
+            turret.ForceSetState(TurretBase.TerretState.Destroyed);
+            
+            // 한 프레임 대기하여 비동기 작업들이 정리될 시간을 제공
+            await UniTask.Yield(cancellationToken);
+            
+            // 터렛 오브젝트 파괴
+            if (turret != null && turret.gameObject != null)
+            {
+                Destroy(turret.gameObject);
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"터렛 안전 파괴 중 오류: {ex.Message}");
+            
+            // 예외 발생 시에도 오브젝트는 파괴
+            if (turret != null && turret.gameObject != null)
+            {
+                Destroy(turret.gameObject);
+            }
+        }
     }
     
     /// <summary>
@@ -654,6 +741,7 @@ public class TerretControl : MonoBehaviour
         PlayCombinationFailEffectAsync(position, cancellationTokenSource.Token).Forget();
     }
     
+
     private void OnDestroy()
     {
         // CancellationToken 정리

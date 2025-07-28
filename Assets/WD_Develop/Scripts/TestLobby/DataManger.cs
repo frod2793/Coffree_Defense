@@ -305,6 +305,11 @@ public class DataManger : MonoBehaviour
         }
     }
 
+    public int GetTP()
+    {
+        return userCurrencyData != null ? userCurrencyData.TP : 0;
+    }
+
     // 워터 포인트 관련 (비동기 처리)
     public async UniTask<bool> SpendWaterPointAsync(int amount, CancellationToken cancellationToken = default)
     {
