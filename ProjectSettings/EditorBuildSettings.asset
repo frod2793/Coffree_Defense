@@ -9,6 +9,9 @@ EditorBuildSettings:
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
   - enabled: 1
+    path: Assets/WD_Develop/Scene/TitleScene.unity
+    guid: 00be9114ac75b304c9c8ee22dcf09fa2
+  - enabled: 1
     path: Assets/WD_Develop/Scene/LobbyTest.unity
     guid: 9f776a128032c4f6c8fbab52cb596acc
   - enabled: 1
