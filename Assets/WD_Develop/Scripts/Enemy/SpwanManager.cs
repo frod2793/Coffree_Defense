@@ -72,11 +72,15 @@ public class SpawnManager : MonoBehaviour
     public static event Action<GameObject, Vector3> OnItemDropped;
     public static event Action OnAllEnemiesSpawned;
     public static event Action OnAllEnemiesCleared;
+    
+    // GameManager와의 연동을 위한 이벤트
+    public static event Action<int, int> OnEnemyKilledUpdate; // (처치된 적 수, 전체 적 수)
 
     // 공개 속성
     public int ActiveEnemyCount => activeEnemies.Count;
     public bool IsSpawning => isSpawning;
     public int QueuedSpawnCount => spawnQueue.Count;
+    public int TotalEnemiesSpawned { get; private set; } // 총 스폰된 적 수 추적
 
     #endregion
 
@@ -220,6 +224,9 @@ public class SpawnManager : MonoBehaviour
         currentState = SpawnState.Spawning;
         isSpawning = true;
         
+        // 웨이브 시작 시 총 스폰된 적 수 초기화
+        TotalEnemiesSpawned = 0;
+        
         try
         {
             await ProcessWaveSpawnAsync(waveData, cancellationToken);
@@ -227,7 +234,7 @@ public class SpawnManager : MonoBehaviour
             currentState = SpawnState.Complete;
             OnAllEnemiesSpawned?.Invoke();
             
-            Debug.Log($"[SpawnManager] 웨이브 스폰 완료: 총 {activeEnemies.Count}마리");
+            Debug.Log($"[SpawnManager] SpawnManager를 통해 총 {TotalEnemiesSpawned}마리의 적 스폰 완료");
         }
         catch (Exception ex)
         {
@@ -330,19 +337,40 @@ public class SpawnManager : MonoBehaviour
         GameObject enemy = pool.Get();
         if (enemy != null)
         {
+            // 적 오브젝트 활성화 (가장 중요!)
+            enemy.SetActive(true);
+            
+            // 위치 및 회전 설정
             enemy.transform.position = request.spawnPosition;
             enemy.transform.rotation = Quaternion.identity;
             
-            // Enemy 컴포넌트에 이벤트 연결
+            // 부모 설정 (있는 경우)
+            if (enemyParent != null)
+            {
+                enemy.transform.SetParent(enemyParent);
+            }
+            
+            // Enemy 컴포넌트 초기화 및 이벤트 연결
             if (enemy.TryGetComponent<EnemyAdvanced>(out var enemyComponent))
             {
+                // 적 컴포넌트 초기화 (필요한 경우)
+                enemyComponent.ResetEnemy();
                 enemyComponent.OnEnemyKilled += HandleEnemyDestroyed;
+            }
+            else
+            {
+                Debug.LogWarning($"[SpawnManager] 스폰된 적 {enemy.name}에 EnemyAdvanced 컴포넌트가 없습니다!");
             }
             
             activeEnemies.Add(enemy);
+            TotalEnemiesSpawned++; // 총 스폰된 적 수 증가
             OnEnemySpawned?.Invoke(enemy);
             
-            Debug.Log($"[SpawnManager] 적 스폰: {enemy.name} at {request.spawnPosition}");
+            Debug.Log($"[SpawnManager] 적 스폰 성공: {enemy.name} at {request.spawnPosition}, 활성화 상태: {enemy.activeInHierarchy}, 총 스폰: {TotalEnemiesSpawned}");
+        }
+        else
+        {
+            Debug.LogError("[SpawnManager] 오브젝트 풀에서 적을 가져올 수 없습니다!");
         }
     }
 
@@ -473,24 +501,47 @@ public class SpawnManager : MonoBehaviour
 
     private GameObject CreateEnemy(GameObject prefab)
     {
+        // 적을 enemyParent 하위에 생성
         GameObject enemy = Instantiate(prefab, enemyParent);
-        enemy.name = prefab.name; // (Clone) 제거
+        
+        // (Clone) 제거하여 깔끔한 이름으로 설정
+        enemy.name = prefab.name;
+        
+        // 초기에는 비활성화 상태로 생성 (풀에서 관리)
+        enemy.SetActive(false);
+        
+        Debug.Log($"[SpawnManager] 적 생성: {enemy.name}, 부모: {enemy.transform.parent?.name ?? "없음"}");
+        
         return enemy;
     }
 
     private void OnGetEnemyFromPool(GameObject enemy)
     {
+        // 풀에서 가져올 때 활성화
         enemy.SetActive(true);
         
-        // 적 상태 초기화
+        // 부모가 올바르게 설정되어 있는지 확인
+        if (enemy.transform.parent != enemyParent)
+        {
+            enemy.transform.SetParent(enemyParent);
+            Debug.Log($"[SpawnManager] 적 {enemy.name}의 부모를 {enemyParent.name}으로 재설정");
+        }
+        
+        // 적 상태 초기화 (ResetEnemy를 사용하여 완전한 초기화)
         if (enemy.TryGetComponent<EnemyAdvanced>(out var enemyComponent))
         {
             enemyComponent.ResetEnemy();
+            Debug.Log($"[SpawnManager] 적 {enemy.name} 완전 초기화 완료 - 이동속도: {enemyComponent.MoveSpeed}");
+        }
+        else
+        {
+            Debug.LogWarning($"[SpawnManager] 적 {enemy.name}에 EnemyAdvanced 컴포넌트가 없습니다!");
         }
     }
 
     private void OnReleaseEnemyToPool(GameObject enemy)
     {
+        // 풀로 반환할 때 비활성화
         enemy.SetActive(false);
         
         // 이벤트 연결 해제
@@ -504,6 +555,7 @@ public class SpawnManager : MonoBehaviour
     {
         if (enemy != null)
         {
+            Debug.Log($"[SpawnManager] 적 오브젝트 파괴: {enemy.name}");
             Destroy(enemy);
         }
     }
@@ -513,12 +565,28 @@ public class SpawnManager : MonoBehaviour
         if (dropItemPrefabs.Count == 0) return null;
         
         GameObject randomPrefab = dropItemPrefabs[UnityEngine.Random.Range(0, dropItemPrefabs.Count)];
-        return Instantiate(randomPrefab, enemyParent);
+        
+        // 드롭 아이템도 enemyParent 하위에 생성하여 정리 용이
+        GameObject dropItem = Instantiate(randomPrefab, enemyParent);
+        
+        // (Clone) 제거
+        dropItem.name = randomPrefab.name;
+        
+        // 초기에는 비활성화
+        dropItem.SetActive(false);
+        
+        return dropItem;
     }
 
     private void OnGetDropItemFromPool(GameObject dropItem)
     {
         dropItem.SetActive(true);
+        
+        // 부모 확인 및 재설정
+        if (dropItem.transform.parent != enemyParent)
+        {
+            dropItem.transform.SetParent(enemyParent);
+        }
     }
 
     private void OnReleaseDropItemToPool(GameObject dropItem)

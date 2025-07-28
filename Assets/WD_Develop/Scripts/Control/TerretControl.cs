@@ -340,7 +340,7 @@ public class TerretControl : MonoBehaviour
     }
     
     /// <summary>
-    /// 아���템 드래그를 시작합니다.
+    /// 아이템 드래그를 시작합니다.
     /// </summary>
     public async UniTask StartItemDragAsync(GameObject itemPrefab, CancellationToken cancellationToken = default)
     {
@@ -515,7 +515,7 @@ public class TerretControl : MonoBehaviour
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"새 터렛 활성화 ��� 오류: {ex.Message}");
+            Debug.LogError($"새 터렛 활성화 중 오류: {ex.Message}");
         }
     }
     

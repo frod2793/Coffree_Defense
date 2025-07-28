@@ -56,7 +56,6 @@ public class GameManager : MonoBehaviour
     private bool isGameActive;
     
     // 웨이브 관련
-    private List<GameObject> currentEnemies = new List<GameObject>();
     private int enemiesKilled;
     private int totalEnemiesInWave;
     
@@ -159,10 +158,10 @@ public class GameManager : MonoBehaviour
     {
         await UniTask.Yield(cancellationToken);
         
-        if (DataManger.IsAvailable())
+        if (DataManager.IsAvailable())
         {
             // 게임 시작 시 초기 TP 지급
-            DataManger.Instance.AddTP(initialTPPerWave);
+            DataManager.Instance.AddTP(initialTPPerWave);
             Debug.Log($"[GameManager] 초기 TP {initialTPPerWave} 지급");
         }
         else
@@ -216,7 +215,7 @@ public class GameManager : MonoBehaviour
         CleanupDestroyedEnemies();
         
         // 모든 적이 처치되었는지 확인
-        if (currentEnemies.Count == 0 && totalEnemiesInWave > 0)
+        if (totalEnemiesInWave > 0 && enemiesKilled >= totalEnemiesInWave)
         {
             CompleteWaveAsync(cancellationTokenSource.Token).Forget();
         }
@@ -237,10 +236,10 @@ public class GameManager : MonoBehaviour
         await UniTask.Yield(cancellationToken);
         
         // 웨이브 시작 시 TP 지급 (첫 웨이브 제외)
-        if (currentWaveIndex > 0 && DataManger.IsAvailable())
+        if (currentWaveIndex > 0 && DataManager.IsAvailable())
         {
             int tpToGive = initialTPPerWave + (currentWaveIndex * TP_INCREMENT_PER_WAVE);
-            DataManger.Instance.AddTP(tpToGive);
+            DataManager.Instance.AddTP(tpToGive);
             Debug.Log($"[GameManager] 웨이브 {CurrentWave} 준비: TP {tpToGive} 지급");
         }
         
@@ -283,9 +282,9 @@ public class GameManager : MonoBehaviour
         
         // 코인 보상 계산 및 지급
         int coinReward = CalculateCoinReward();
-        if (DataManger.IsAvailable())
+        if (DataManager.IsAvailable())
         {
-            DataManger.Instance.AddCoin(coinReward);
+            DataManager.Instance.AddCoin(coinReward);
         }
         
         OnWaveCompleted?.Invoke(CurrentWave, coinReward);
@@ -313,51 +312,27 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private async UniTask SpawnWaveEnemiesAsync(WaveData waveData, CancellationToken cancellationToken)
     {
-        currentEnemies.Clear();
         enemiesKilled = 0;
         totalEnemiesInWave = 0;
         
-        // 웨이브 데이터에 따라 적 생성
-        foreach (var enemyGroup in waveData.enemyGroups)
-        {
-            for (int i = 0; i < enemyGroup.count; i++)
-            {
-                await UniTask.Delay((int)(enemyGroup.spawnInterval * 1000), DelayType.DeltaTime, 
-                    PlayerLoopTiming.Update, cancellationToken);
-                
-                if (enemyGroup.enemyPrefab != null)
-                {
-                    GameObject enemy = SpawnEnemy(enemyGroup.enemyPrefab, waveData.spawnPoint);
-                    if (enemy != null)
-                    {
-                        currentEnemies.Add(enemy);
-                        totalEnemiesInWave++;
-                        
-                        // 적에게 이벤트 연결 - EnemyAdvanced 클래스 사용
-                        var enemyComponent = enemy.GetComponent<EnemyAdvanced>();
-                        if (enemyComponent != null)
-                        {
-                            enemyComponent.OnEnemyKilled += OnEnemyKilledHandler;
-                        }
-                    }
-                }
-            }
-        }
+        Debug.Log($"[GameManager] 웨이브 시작 - SpawnManager를 통해 적 스폰 시작");
         
-        Debug.Log($"[GameManager] 총 {totalEnemiesInWave}마리의 적 생성 완료");
-    }
-
-    private GameObject SpawnEnemy(GameObject enemyPrefab, Vector3 spawnPoint)
-    {
-        try
+        if (spawnManager != null)
         {
-            GameObject enemy = Instantiate(enemyPrefab, spawnPoint, Quaternion.identity);
-            return enemy;
+            // SpawnManager 이벤트 구독
+            SpawnManager.OnEnemyDestroyed += OnEnemyKilledHandler;
+            
+            // SpawnManager에게 웨이브 스폰 요청
+            await spawnManager.SpawnWaveAsync(waveData, cancellationToken);
+            
+            // SpawnManager에서 총 스폰된 적들의 정보를 가져와서 GameManager에서 추적
+            totalEnemiesInWave = spawnManager.TotalEnemiesSpawned;
+            
+            Debug.Log($"[GameManager] SpawnManager를 통해 총 {totalEnemiesInWave}마리의 적 스폰 완료");
         }
-        catch (Exception ex)
+        else
         {
-            Debug.LogError($"[GameManager] 적 생성 실패: {ex.Message}");
-            return null;
+            Debug.LogError("[GameManager] SpawnManager를 찾을 수 없습니다!");
         }
     }
 
@@ -366,24 +341,22 @@ public class GameManager : MonoBehaviour
         enemiesKilled++;
         OnEnemyKilled?.Invoke(enemiesKilled, totalEnemiesInWave);
         
-        // 리스트에서 제거
-        if (currentEnemies.Contains(enemy))
-        {
-            currentEnemies.Remove(enemy);
-        }
-        
         Debug.Log($"[GameManager] 적 처치: {enemiesKilled}/{totalEnemiesInWave}");
+        
+        // 모든 적이 처치되었는지 확인
+        if (enemiesKilled >= totalEnemiesInWave && totalEnemiesInWave > 0)
+        {
+            // SpawnManager 이벤트 구독 해제
+            SpawnManager.OnEnemyDestroyed -= OnEnemyKilledHandler;
+            
+            // 웨이브 완료 처리
+            CompleteWaveAsync(cancellationTokenSource.Token).Forget();
+        }
     }
 
     private void CleanupDestroyedEnemies()
     {
-        for (int i = currentEnemies.Count - 1; i >= 0; i--)
-        {
-            if (currentEnemies[i] == null)
-            {
-                currentEnemies.RemoveAt(i);
-            }
-        }
+        // SpawnManager에서 관리하므로 여기서는 처리하지 않음
     }
 
     #endregion
@@ -427,9 +400,9 @@ public class GameManager : MonoBehaviour
         }
         
         // 데이터 저장
-        if (DataManger.IsAvailable())
+        if (DataManager.IsAvailable())
         {
-            DataManger.Instance.SaveUserData();
+            DataManager.Instance.SaveUserData();
         }
     }
 
@@ -537,14 +510,7 @@ public class GameManager : MonoBehaviour
     private void CleanupCurrentGame()
     {
         // 현재 적들 정리
-        foreach (var enemy in currentEnemies)
-        {
-            if (enemy != null)
-            {
-                Destroy(enemy);
-            }
-        }
-        currentEnemies.Clear();
+        // SpawnManager에서 관리하므로 여기서는 별도 처리 없음
         
         Time.timeScale = 1f;
     }

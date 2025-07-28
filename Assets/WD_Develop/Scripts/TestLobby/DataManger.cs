@@ -8,9 +8,9 @@ using System.Threading;
 /// 씬 전환 시에도 파괴되지 않고 인게임에서 지속적으로 사용 가능합니다.
 /// UniTask를 활용한 비동기 처리로 성능 최적화
 /// </summary>
-public class DataManger : MonoBehaviour
+public class DataManager : MonoBehaviour
 {
-    public static DataManger Instance { get; private set; }
+    public static DataManager Instance { get; private set; }
 
     [Header("User Data")]
     [SerializeField] private UserCurrencyData userCurrencyData;

@@ -7,6 +7,7 @@ using System.Threading;
 /// 일반 터렛 클래스 - TurretBase를 상속받아 기본적인 발사 기능을 구현
 /// TurretBone 오브젝트에 ItemA 오브젝트가 드래그앤드롭으로 충돌시 NormalTurret 오브젝트로 변환
 /// UniTask 기반 비동기 처리로 성능 최적화
+/// 모든 적의 이동속도는 3f로 통일됨
 /// </summary>
 [RequireComponent(typeof(BoxCollider))]
 public class NormalTurret : TurretBase

@@ -118,15 +118,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 7377194556898167998}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 11f9060abc4164cbbbbf176faa6a79aa, type: 3}
+  m_Script: {fileID: 11500000, guid: 7decdf84f38846cea3011c61d4b9d347, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 100
   moveSpeed: 5
   coinReward: 10
   attackDamage: 20
-  waypoints: []
-  useWaypointSystem: 1
-  targetDestination: {fileID: 0}
+  attackCooldown: 1
+  turretTag: Turret
+  cafeWallTag: CafeWall
   deathEffect: {fileID: 0}
   hitEffect: {fileID: 0}
+  attackEffect: {fileID: 0}
