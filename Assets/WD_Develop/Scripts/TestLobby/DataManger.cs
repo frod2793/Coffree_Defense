@@ -8,9 +8,9 @@ using System.Threading;
 /// 씬 전환 시에도 파괴되지 않고 인게임에서 지속적으로 사용 가능합니다.
 /// UniTask를 활용한 비동기 처리로 성능 최적화
 /// </summary>
-public class DataManager : MonoBehaviour
+public class DataManger : MonoBehaviour
 {
-    public static DataManager Instance { get; private set; }
+    public static DataManger Instance { get; private set; }
 
     [Header("User Data")]
     [SerializeField] private UserCurrencyData userCurrencyData;
@@ -34,12 +34,12 @@ public class DataManager : MonoBehaviour
             cancellationTokenSource = new CancellationTokenSource();
             InitializeDataAsync(cancellationTokenSource.Token).Forget();
             
-            Debug.Log("[DataManager] 인스턴스 생성 및 영구 보존 설정 완료");
+            Debug.Log("[DataManger] 인스턴스 생성 및 영구 보존 설정 완료");
         }
         else
         {
             // 이미 존재하는 인스턴스가 있으면 중복 제거
-            Debug.Log("[DataManager] 중복 인스턴스 감지, 현재 오브젝트 파괴");
+            Debug.Log("[DataManger] 중복 인스턴스 감지, 현재 오브젝트 파괴");
             Destroy(gameObject);
         }
     }
@@ -55,7 +55,7 @@ public class DataManager : MonoBehaviour
         SceneLoader.OnSceneLoadStarted += OnSceneChangeStarted;
         
         isInitialized = true;
-        Debug.Log("[DataManager] 초기화 완료 - 인게임에서 사용 준비됨");
+        Debug.Log("[DataManger] 초기화 완료 - 인게임에서 사용 준비됨");
     }
 
     private void OnApplicationPause(bool pauseStatus)
@@ -83,7 +83,7 @@ public class DataManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 인게임에서 DataManager 인스턴스에 안전하게 접근하기 위한 메서드
+    /// 인게임에서 DataManger 인스턴스에 안전하게 접근하기 위한 메서드
     /// </summary>
     public static bool IsAvailable()
     {
@@ -97,7 +97,7 @@ public class DataManager : MonoBehaviour
     {
         if (!IsInitialized())
         {
-            Debug.LogWarning("[DataManager] 초기화되지 않은 상태에서 재화 정보 요청");
+            Debug.LogWarning("[DataManger] 초기화되지 않은 상태에서 재화 정보 요청");
             return new CurrencyInfo();
         }
 
@@ -138,7 +138,7 @@ public class DataManager : MonoBehaviour
             // SceneLoader 이벤트 구독 해제
             SceneLoader.OnSceneLoadStarted -= OnSceneChangeStarted;
             
-            Debug.Log("[DataManager] 인스턴스 파괴 시 정리 작업 완료");
+            Debug.Log("[DataManger] 인스턴스 파괴 시 정리 작업 완료");
         }
     }
 
@@ -146,7 +146,7 @@ public class DataManager : MonoBehaviour
     {
         if (userCurrencyData == null)
         {
-            Debug.LogError("[DataManager] UserCurrencyData가 설정되지 않았습니다! Inspector에서 할당해주세요.");
+            Debug.LogError("[DataManger] UserCurrencyData가 설정되지 않았습니다! Inspector에서 할당해주세요.");
             return;
         }
         
@@ -154,7 +154,7 @@ public class DataManager : MonoBehaviour
         await UniTask.Yield(cancellationToken);
         
         // UserCurrencyData가 이미 데이터를 가지고 있으므로 별도의 초기화 불필요
-        Debug.Log("[DataManager] UserCurrencyData 초기화 완료");
+        Debug.Log("[DataManger] UserCurrencyData 초기화 완료");
     }
 
     // 데이터 로드 (비동기 처리)
@@ -162,7 +162,7 @@ public class DataManager : MonoBehaviour
     {
         if (userCurrencyData == null) 
         {
-            Debug.LogError("[DataManager] UserCurrencyData가 없어 데이터 로드 실패");
+            Debug.LogError("[DataManger] UserCurrencyData가 없어 데이터 로드 실패");
             return;
         }
 
@@ -178,7 +178,7 @@ public class DataManager : MonoBehaviour
         OnTPChanged?.Invoke(savedTP);
         OnWaterPointChanged?.Invoke(savedWaterPoint);
 
-        Debug.Log($"[DataManager] 데이터 로드 완료 - 코인: {savedCoin}, TP: {savedTP}, 워터포인트: {savedWaterPoint}");
+        Debug.Log($"[DataManger] 데이터 로드 완료 - 코인: {savedCoin}, TP: {savedTP}, 워터포인트: {savedWaterPoint}");
     }
 
     // 동기 버전 유지 (하위 호환성)
@@ -192,7 +192,7 @@ public class DataManager : MonoBehaviour
     {
         if (userCurrencyData == null) 
         {
-            Debug.LogError("[DataManager] UserCurrencyData가 없어 데이터 저장 실패");
+            Debug.LogError("[DataManger] UserCurrencyData가 없어 데이터 저장 실패");
             return;
         }
 
@@ -202,7 +202,7 @@ public class DataManager : MonoBehaviour
         // UserCurrencyData가 자동으로 저장하므로 수동 저장만 호출
         userCurrencyData.Save();
 
-        Debug.Log($"[DataManager] 데이터 저장 완료 - 코인: {userCurrencyData.Coin}, TP: {userCurrencyData.TP}, 워터포인트: {userCurrencyData.WaterPoint}");
+        Debug.Log($"[DataManger] 데이터 저장 완료 - 코인: {userCurrencyData.Coin}, TP: {userCurrencyData.TP}, 워터포인트: {userCurrencyData.WaterPoint}");
     }
 
     // 동기 버전 유지 (하위 호환성)
@@ -378,7 +378,7 @@ public class DataManager : MonoBehaviour
     {
         // 씬 전환 시 자동으로 데이터 저장 (비동기)
         SaveUserDataAsync(cancellationTokenSource.Token).Forget();
-        Debug.Log($"[DataManager] 씬 전환({sceneName})으로 인한 데이터 자동 저장");
+        Debug.Log($"[DataManger] 씬 전환({sceneName})으로 인한 데이터 자동 저장");
     }
 
     /// <summary>
@@ -390,7 +390,7 @@ public class DataManager : MonoBehaviour
         {
             // 동기적으로 즉시 저장 (앱 종료 시)
             SaveUserData();
-            Debug.Log("[DataManager] 애플리케이션 종료 시 데이터 저장 완료");
+            Debug.Log("[DataManger] 애플리케이션 종료 시 데이터 저장 완료");
         }
     }
 }

@@ -49,6 +49,16 @@ public class GameManager : MonoBehaviour
     [SerializeField] private TerretControl turretControl;
     [SerializeField] private SpawnManager spawnManager;
     
+    [Header("수압프레스 설정")]
+    [SerializeField] private HydroWaterPress hydroWaterPrefab; // 수압프레스 프리팹
+    [SerializeField] private Transform hydroSpawnPoint; // 수압프레스 스폰 위치
+    // 수압프레스 관련 변수
+    private float lastHydroPressTime = 0f;
+    private List<HydroWaterPress> activeHydroPresses = new List<HydroWaterPress>();
+    
+    [SerializeField] private int hydroPressCost = 100; // 수압프레스 비용
+    [SerializeField] private float hydroPressCooldown = 10f; // 수압프레스 쿨다운
+    
     // 게임 상태
     public GameState currentState { get; private set; }
     private int currentWaveIndex = 0;
@@ -135,7 +145,7 @@ public class GameManager : MonoBehaviour
             enemiesKilled = 0;
             totalEnemiesInWave = 0;
             
-            // DataManager 확인 및 초기 TP 지급
+            // DataManger 확인 및 초기 TP 지급
             await SetupInitialResourcesAsync(cancellationToken);
             
             // 웨이브 데이터 검증
@@ -158,15 +168,15 @@ public class GameManager : MonoBehaviour
     {
         await UniTask.Yield(cancellationToken);
         
-        if (DataManager.IsAvailable())
+        if (DataManger.IsAvailable())
         {
             // 게임 시작 시 초기 TP 지급
-            DataManager.Instance.AddTP(initialTPPerWave);
+            DataManger.Instance.AddTP(initialTPPerWave);
             Debug.Log($"[GameManager] 초기 TP {initialTPPerWave} 지급");
         }
         else
         {
-            Debug.LogWarning("[GameManager] DataManager를 사용할 수 없습니다!");
+            Debug.LogWarning("[GameManager] DataManger를 사용할 수 없습니다!");
         }
     }
 
@@ -236,10 +246,10 @@ public class GameManager : MonoBehaviour
         await UniTask.Yield(cancellationToken);
         
         // 웨이브 시작 시 TP 지급 (첫 웨이브 제외)
-        if (currentWaveIndex > 0 && DataManager.IsAvailable())
+        if (currentWaveIndex > 0 && DataManger.IsAvailable())
         {
             int tpToGive = initialTPPerWave + (currentWaveIndex * TP_INCREMENT_PER_WAVE);
-            DataManager.Instance.AddTP(tpToGive);
+            DataManger.Instance.AddTP(tpToGive);
             Debug.Log($"[GameManager] 웨이브 {CurrentWave} 준비: TP {tpToGive} 지급");
         }
         
@@ -282,9 +292,9 @@ public class GameManager : MonoBehaviour
         
         // 코인 보상 계산 및 지급
         int coinReward = CalculateCoinReward();
-        if (DataManager.IsAvailable())
+        if (DataManger.IsAvailable())
         {
-            DataManager.Instance.AddCoin(coinReward);
+            DataManger.Instance.AddCoin(coinReward);
         }
         
         OnWaveCompleted?.Invoke(CurrentWave, coinReward);
@@ -400,9 +410,9 @@ public class GameManager : MonoBehaviour
         }
         
         // 데이터 저장
-        if (DataManager.IsAvailable())
+        if (DataManger.IsAvailable())
         {
-            DataManager.Instance.SaveUserData();
+            DataManger.Instance.SaveUserData();
         }
     }
 
@@ -458,49 +468,179 @@ public class GameManager : MonoBehaviour
 
     #endregion
 
-    #region 유틸리티
+    #region 수압프레스 시스템
 
-    private void ChangeGameState(GameState newState)
+    /// <summary>
+    /// 수압프레스를 생성합니다
+    /// </summary>
+    public bool SpawnHydroWaterPress()
     {
-        if (currentState != newState)
+        // 쿨다운 체크
+        if (Time.time - lastHydroPressTime < hydroPressCooldown)
         {
-            var previousState = currentState;
-            currentState = newState;
-            OnGameStateChanged?.Invoke(newState);
-            Debug.Log($"[GameManager] 상태 변경: {previousState} → {newState}");
+            float remainingCooldown = hydroPressCooldown - (Time.time - lastHydroPressTime);
+            Debug.Log($"[GameManager] 수압프레스 쿨다운 중: {remainingCooldown:F1}초 남음");
+            return false;
         }
+
+        // 코인 체크
+        if (DataManger.IsAvailable())
+        {
+            if (DataManger.Instance.GetCoin() < hydroPressCost)
+            {
+                Debug.Log($"[GameManager] 수압프레스 비용 부족: {hydroPressCost} 코인 필요");
+                return false;
+            }
+        }
+        else
+        {
+            Debug.LogWarning("[GameManager] DataManger를 사용할 수 없습니다!");
+            return false;
+        }
+
+        // 수압프레스 프리팹 체크
+        if (hydroWaterPrefab == null)
+        {
+            Debug.LogError("[GameManager] 수압프레스 프리팹이 설정되지 않았습니다!");
+            return false;
+        }
+
+        // 스폰 위치 설정 (기본값 사용 또는 플레이어 앞쪽)
+        Vector3 spawnPosition = GetHydroPressSpawnPosition();
+        Vector3 spawnDirection = GetHydroPressDirection();
+
+        // 수압프레스 생성
+        HydroWaterPress hydroPress = Instantiate(hydroWaterPrefab, spawnPosition, Quaternion.identity);
+        
+        // 수압프레스 초기화
+        hydroPress.Initialize(spawnDirection);
+        
+        // 활성 수압프레스 목록에 추가
+        activeHydroPresses.Add(hydroPress);
+        
+        // 코인 차감
+        if (DataManger.IsAvailable())
+        {
+            DataManger.Instance.SpendCoin(hydroPressCost);
+        }
+
+        // 쿨다운 갱신
+        lastHydroPressTime = Time.time;
+
+        Debug.Log($"[GameManager] 수압프레스 생성 완료 - 위치: {spawnPosition}, 방향: {spawnDirection}");
+        return true;
     }
 
+    /// <summary>
+    /// 수압프레스 스폰 위치를 계산합니다
+    /// </summary>
+    private Vector3 GetHydroPressSpawnPosition()
+    {
+        if (hydroSpawnPoint != null)
+        {
+            return hydroSpawnPoint.position;
+        }
+
+        // 기본 스폰 위치: 카메라 앞쪽 또는 맵 중앙
+        Camera mainCamera = Camera.main;
+        if (mainCamera != null)
+        {
+            Vector3 cameraForward = mainCamera.transform.forward;
+            cameraForward.y = 0; // Y축 제거
+            return mainCamera.transform.position + cameraForward.normalized * 5f;
+        }
+
+        // 카메라가 없으면 맵 중앙에서 앞쪽으로
+        return new Vector3(0, 1, -10);
+    }
+
+    /// <summary>
+    /// 수압프레스 이동 방향을 계산합니다
+    /// </summary>
+    private Vector3 GetHydroPressDirection()
+    {
+        // 기본적으로 앞쪽 (Z+) 방향으로 이동
+        return Vector3.forward;
+    }
+
+    /// <summary>
+    /// 수압프레스 사용 가능 여부를 확인합니다
+    /// </summary>
+    public bool CanUseHydroWaterPress()
+    {
+        // 쿨다운 체크
+        if (Time.time - lastHydroPressTime < hydroPressCooldown)
+            return false;
+
+        // 코인 체크
+        if (DataManger.IsAvailable())
+        {
+            return DataManger.Instance.GetCoin() >= hydroPressCost;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 수압프레스 쿨다운 남은 시간을 반환합니다
+    /// </summary>
+    public float GetHydroPressRemainingCooldown()
+    {
+        return Mathf.Max(0f, hydroPressCooldown - (Time.time - lastHydroPressTime));
+    }
+
+    /// <summary>
+    /// 활성 수압프레스 목록을 정리합니다 (파괴된 오브젝트 제거)
+    /// </summary>
+    private void CleanupHydroPresses()
+    {
+        activeHydroPresses.RemoveAll(hydroPress => hydroPress == null);
+    }
+
+    /// <summary>
+    /// 수압프레스 정보를 반환합니다
+    /// </summary>
+    public string GetHydroPressInfo()
+    {
+        CleanupHydroPresses();
+        float cooldown = GetHydroPressRemainingCooldown();
+        int currentCoin = DataManger.IsAvailable() ? DataManger.Instance.GetCoin() : 0;
+        
+        return $"수압프레스 - 비용: {hydroPressCost}, 보유코인: {currentCoin}, " +
+               $"쿨다운: {cooldown:F1}s, 활성: {activeHydroPresses.Count}개";
+    }
+
+    #endregion
+
+    #region 유틸리티 메서드
+
+    /// <summary>
+    /// 게임 상태를 변경합니다.
+    /// </summary>
+    private void ChangeGameState(GameState newState)
+    {
+        if (currentState == newState) return;
+        
+        GameState previousState = currentState;
+        currentState = newState;
+        
+        OnGameStateChanged?.Invoke(newState);
+        
+        Debug.Log($"[GameManager] 게임 상태 변경: {previousState} → {newState}");
+    }
+
+    /// <summary>
+    /// 현재 웨이브 데이터를 가져옵니다.
+    /// </summary>
     private WaveData GetCurrentWaveData()
     {
-        if (currentWaveIndex < waveDataList.Count)
+        if (currentWaveIndex >= 0 && currentWaveIndex < waveDataList.Count)
         {
             return waveDataList[currentWaveIndex];
         }
         
-        // 웨이브 데이터가 부족한 경우 기본 웨이브 생성
-        return CreateDefaultWaveData();
-    }
-
-    private WaveData CreateDefaultWaveData()
-    {
-        // 기본 웨이브 데이터 생성 로직
-        // 실제 게임에서는 적절한 기본값 설정 필요
-        return new WaveData
-        {
-            waveNumber = CurrentWave,
-            spawnPoint = Vector3.zero,
-            enemyGroups = new List<EnemyGroup>()
-        };
-    }
-
-    /// <summary>
-    /// 게임 상태 정보를 반환합니다.
-    /// </summary>
-    public string GetGameStatusInfo()
-    {
-        return $"웨이브: {CurrentWave}/{totalWaves}, 상태: {currentState}, " +
-               $"적 처치: {enemiesKilled}/{totalEnemiesInWave}";
+        Debug.LogWarning($"[GameManager] 웨이브 인덱스 {currentWaveIndex}에 해당하는 데이터가 없습니다.");
+        return null;
     }
 
     #endregion

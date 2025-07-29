@@ -47,10 +47,10 @@ public class DataEditorUI : MonoBehaviour
 
     void SetupUI()
     {
-        // DataManager가 없으면 경고
-        if (DataManager.Instance == null)
+        // DataManger가 없으면 경고
+        if (DataManger.Instance == null)
         {
-            Debug.LogError("DataManager Instance가 없습니다!");
+            Debug.LogError("DataManger Instance가 없습니다!");
             return;
         }
 
@@ -62,12 +62,12 @@ public class DataEditorUI : MonoBehaviour
 
     void SetupEventListeners()
     {
-        if (DataManager.Instance == null) return;
+        if (DataManger.Instance == null) return;
 
-        // DataManager 이벤트 구독
-        DataManager.Instance.OnCoinChanged += UpdateCoinDisplay;
-        DataManager.Instance.OnTPChanged += UpdateTPDisplay;
-        DataManager.Instance.OnWaterPointChanged += UpdateWaterPointDisplay;
+        // DataManger 이벤트 구독
+        DataManger.Instance.OnCoinChanged += UpdateCoinDisplay;
+        DataManger.Instance.OnTPChanged += UpdateTPDisplay;
+        DataManger.Instance.OnWaterPointChanged += UpdateWaterPointDisplay;
 
         // 코인 버튼 이벤트 설정
         if (addCoinButton != null)
@@ -116,11 +116,11 @@ public class DataEditorUI : MonoBehaviour
 
     void UpdateUI()
     {
-        if (DataManager.Instance == null) return;
+        if (DataManger.Instance == null) return;
 
-        UpdateCoinDisplay(DataManager.Instance.GetCoin());
-        UpdateTPDisplay(DataManager.Instance.GetTp());
-        UpdateWaterPointDisplay(DataManager.Instance.GetWaterPoint());
+        UpdateCoinDisplay(DataManger.Instance.GetCoin());
+        UpdateTPDisplay(DataManger.Instance.GetTp());
+        UpdateWaterPointDisplay(DataManger.Instance.GetWaterPoint());
     }
 
     void UpdateCoinDisplay(int amount)
@@ -143,7 +143,7 @@ public class DataEditorUI : MonoBehaviour
 
     void AddCurrency(string currencyType)
     {
-        if (DataManager.Instance == null) return;
+        if (DataManger.Instance == null) return;
 
         int amount = 0;
         TMP_InputField targetInputField = null;
@@ -166,13 +166,13 @@ public class DataEditorUI : MonoBehaviour
             switch (currencyType)
             {
                 case "coin":
-                    DataManager.Instance.AddCoin(amount);
+                    DataManger.Instance.AddCoin(amount);
                     break;
                 case "tp":
-                    DataManager.Instance.AddTP(amount);
+                    DataManger.Instance.AddTP(amount);
                     break;
                 case "waterPoint":
-                    DataManager.Instance.AddWaterPoint(amount);
+                    DataManger.Instance.AddWaterPoint(amount);
                     break;
             }
         }
@@ -180,7 +180,7 @@ public class DataEditorUI : MonoBehaviour
 
     void SubtractCurrency(string currencyType)
     {
-        if (DataManager.Instance == null) return;
+        if (DataManger.Instance == null) return;
 
         int amount = 0;
         TMP_InputField targetInputField = null;
@@ -203,13 +203,13 @@ public class DataEditorUI : MonoBehaviour
             switch (currencyType)
             {
                 case "coin":
-                    DataManager.Instance.SpendCoin(amount);
+                    DataManger.Instance.SpendCoin(amount);
                     break;
                 case "tp":
-                    DataManager.Instance.SpendTP(amount);
+                    DataManger.Instance.SpendTP(amount);
                     break;
                 case "waterPoint":
-                    DataManager.Instance.SpendWaterPoint(amount);
+                    DataManger.Instance.SpendWaterPoint(amount);
                     break;
             }
         }
@@ -217,7 +217,7 @@ public class DataEditorUI : MonoBehaviour
 
     void SetCurrency(string currencyType)
     {
-        if (DataManager.Instance == null) return;
+        if (DataManger.Instance == null) return;
 
         int amount = 0;
         TMP_InputField targetInputField = null;
@@ -237,12 +237,12 @@ public class DataEditorUI : MonoBehaviour
 
         if (targetInputField != null && int.TryParse(targetInputField.text, out amount))
         {
-            var currencyData = DataManager.Instance.GetUserCurrencyData();
+            var currencyData = DataManger.Instance.GetUserCurrencyData();
             if (currencyData != null)
             {
-                int currentCoin = DataManager.Instance.GetCoin();
-                int currentTP = DataManager.Instance.GetTp();
-                int currentWaterPoint = DataManager.Instance.GetWaterPoint();
+                int currentCoin = DataManger.Instance.GetCoin();
+                int currentTP = DataManger.Instance.GetTp();
+                int currentWaterPoint = DataManger.Instance.GetWaterPoint();
 
                 switch (currencyType)
                 {
@@ -257,7 +257,7 @@ public class DataEditorUI : MonoBehaviour
                         break;
                 }
 
-                DataManager.Instance.SaveUserData();
+                DataManger.Instance.SaveUserData();
                 UpdateUI();
             }
         }
@@ -265,26 +265,26 @@ public class DataEditorUI : MonoBehaviour
 
     void ResetData()
     {
-        if (DataManager.Instance != null)
+        if (DataManger.Instance != null)
         {
-            DataManager.Instance.ResetAllData();
+            DataManger.Instance.ResetAllData();
         }
     }
 
     void SaveData()
     {
-        if (DataManager.Instance != null)
+        if (DataManger.Instance != null)
         {
-            DataManager.Instance.SaveUserData();
+            DataManger.Instance.SaveUserData();
             Debug.Log("데이터가 저장되었습니다.");
         }
     }
 
     void LoadData()
     {
-        if (DataManager.Instance != null)
+        if (DataManger.Instance != null)
         {
-            DataManager.Instance.LoadUserData();
+            DataManger.Instance.LoadUserData();
             Debug.Log("데이터가 로드되었습니다.");
         }
     }
@@ -292,9 +292,9 @@ public class DataEditorUI : MonoBehaviour
     void GoToGameScene()
     {
         // 데이터 저장 후 게임 씬으로 이동
-        if (DataManager.Instance != null)
+        if (DataManger.Instance != null)
         {
-            DataManager.Instance.SaveUserData();
+            DataManger.Instance.SaveUserData();
             Debug.Log("게임 씬 이동 전 데이터 저장 완료");
         }
         
@@ -313,11 +313,11 @@ public class DataEditorUI : MonoBehaviour
     void OnDestroy()
     {
         // 이벤트 구독 해제
-        if (DataManager.Instance != null)
+        if (DataManger.Instance != null)
         {
-            DataManager.Instance.OnCoinChanged -= UpdateCoinDisplay;
-            DataManager.Instance.OnTPChanged -= UpdateTPDisplay;
-            DataManager.Instance.OnWaterPointChanged -= UpdateWaterPointDisplay;
+            DataManger.Instance.OnCoinChanged -= UpdateCoinDisplay;
+            DataManger.Instance.OnTPChanged -= UpdateTPDisplay;
+            DataManger.Instance.OnWaterPointChanged -= UpdateWaterPointDisplay;
         }
     }
 }

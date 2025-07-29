@@ -35,22 +35,25 @@ public class EnemyAdvanced : MonoBehaviour
     private const float TURRET_DETECT_RANGE = 50f; // 포탑 탐지 범위
     private const float ATTACK_RANGE = 2.0f; // 공격 범위
     private const float ARRIVAL_THRESHOLD = 1.0f; // 도착 판정 거리
-    private const float STANDARD_MOVE_SPEED = 3f; // 모든 적의 표준 이동속도 (통일됨)
+    private const float STANDARD_MOVE_SPEED = 2f; // 모든 적의 표준 이동속도 (더 일관되게 조정)
 
     #endregion
 
     #region 필드 및 속성
 
-    [Header("적 기본 스탯")] [SerializeField] protected float maxHealth = 100f;
+    [Header("적 기본 스탯")] 
+    [SerializeField] protected float maxHealth = 100f;
     [SerializeField] protected float moveSpeed = STANDARD_MOVE_SPEED; // 표준 이동속도로 통일
     [SerializeField] protected int coinReward = 10;
     [SerializeField] protected float attackDamage = 20f;
     [SerializeField] protected float attackCooldown = 1.0f;
 
-    [Header("타겟 설정")] [SerializeField] protected string turretTag = "Turret";
+    [Header("타겟 설정")] 
+    [SerializeField] protected string turretTag = "Turret";
     [SerializeField] protected string cafeWallTag = "CafeWall";
 
-    [Header("시각적 효과")] [SerializeField] protected GameObject deathEffect;
+    [Header("시각적 효과")] 
+    [SerializeField] protected GameObject deathEffect;
     [SerializeField] protected GameObject hitEffect;
     [SerializeField] protected GameObject attackEffect;
 
@@ -63,9 +66,19 @@ public class EnemyAdvanced : MonoBehaviour
     protected Vector3 targetPosition;
     protected bool hasFoundTurret = false;
 
-    // 이동 관련
+    // 이동 관련 (개선된 이동 시스템)
     protected Vector3 moveDirection;
     protected float lastAttackTime = 0f;
+    protected Vector3 lastPosition;
+    protected float stuckCheckTimer = 0f;
+    protected const float STUCK_CHECK_INTERVAL = 1f;
+    protected const float MIN_MOVE_DISTANCE = 0.1f;
+
+    // 넉백 관련 (수압프레스 기능을 위해 추가)
+    protected bool isKnockedBack = false;
+    protected Vector3 knockbackVelocity = Vector3.zero;
+    protected float knockbackDuration = 0f;
+    protected float knockbackTimer = 0f;
 
     // UniTask 관련
     protected CancellationTokenSource cancellationTokenSource;
@@ -117,11 +130,91 @@ public class EnemyAdvanced : MonoBehaviour
     {
         if (currentTarget == null) return;
         
+        // 넉백 상태일 때는 넉백 이동 처리
+        if (isKnockedBack)
+        {
+            UpdateKnockback();
+            return;
+        }
+        
         // 이동 상태일 때만 이동 처리
         if (currentState == EnemyState.MovingToTurret || currentState == EnemyState.MovingToCafe)
         {
             MoveTowardsTargetSync();
         }
+        
+        // 끊김 현상 방지를 위한 위치 추적
+        CheckIfStuck();
+    }
+
+    /// <summary>
+    /// 넉백 효과 업데이트
+    /// </summary>
+    protected virtual void UpdateKnockback()
+    {
+        if (!isKnockedBack) return;
+        
+        knockbackTimer += Time.deltaTime;
+        
+        if (knockbackTimer >= knockbackDuration)
+        {
+            // 넉백 종료
+            isKnockedBack = false;
+            knockbackVelocity = Vector3.zero;
+            knockbackTimer = 0f;
+            Debug.Log($"[{gameObject.name}] 넉백 효과 종료");
+        }
+        else
+        {
+            // 넉백 이동 적용 (감쇠)
+            float remainingRatio = 1f - (knockbackTimer / knockbackDuration);
+            Vector3 movement = knockbackVelocity * remainingRatio * Time.deltaTime;
+            transform.position += movement;
+        }
+    }
+
+    /// <summary>
+    /// 적이 끼었는지 확인하고 처리
+    /// </summary>
+    protected virtual void CheckIfStuck()
+    {
+        stuckCheckTimer += Time.deltaTime;
+        
+        if (stuckCheckTimer >= STUCK_CHECK_INTERVAL)
+        {
+            float movedDistance = Vector3.Distance(transform.position, lastPosition);
+            
+            if (movedDistance < MIN_MOVE_DISTANCE && (currentState == EnemyState.MovingToTurret || currentState == EnemyState.MovingToCafe))
+            {
+                // 끼었을 때 처리 - 약간 랜덤한 방향으로 이동
+                Vector3 randomOffset = new Vector3(
+                    UnityEngine.Random.Range(-1f, 1f),
+                    0f,
+                    UnityEngine.Random.Range(-1f, 1f)
+                ).normalized * 0.5f;
+                
+                transform.position += randomOffset;
+                Debug.Log($"[{gameObject.name}] 끼임 해제 처리");
+            }
+            
+            lastPosition = transform.position;
+            stuckCheckTimer = 0f;
+        }
+    }
+
+    /// <summary>
+    /// 넉백 효과 적용 (수압프레스에서 호출)
+    /// </summary>
+    public virtual void ApplyKnockback(Vector3 direction, float force, float duration = 0.5f)
+    {
+        if (currentState == EnemyState.Dead) return;
+        
+        isKnockedBack = true;
+        knockbackVelocity = direction.normalized * force;
+        knockbackDuration = duration;
+        knockbackTimer = 0f;
+        
+        Debug.Log($"[{gameObject.name}] 넉백 효과 적용: 방향={direction}, 힘={force}, 지속시간={duration}");
     }
 
     /// <summary>
@@ -929,9 +1022,9 @@ public class EnemyAdvanced : MonoBehaviour
         ChangeState(EnemyState.Dead);
 
         // 코인 보상 지급
-        if (DataManager.IsAvailable())
+        if (DataManger.IsAvailable())
         {
-            DataManager.Instance.AddCoin(coinReward);
+            DataManger.Instance.AddCoin(coinReward);
         }
 
         Debug.Log($"[{gameObject.name}] 적 사망. 코인 {coinReward} 획득");

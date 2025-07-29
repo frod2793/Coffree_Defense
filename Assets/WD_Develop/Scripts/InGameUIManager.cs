@@ -69,9 +69,10 @@ public class InGameUIManager : MonoBehaviour
     private bool isInitialized = false;
     
     // 성능 최적화를 위한 캐시
-    private DataManager.CurrencyInfo lastCurrencyInfo;
-    private bool hasDataManagerEvents = false;
+    private DataManger.CurrencyInfo lastCurrencyInfo;
+    private bool hasDataMangerEvents = false;
 
+    
     #endregion
 
     #region 유니티 생명주기
@@ -225,13 +226,13 @@ public class InGameUIManager : MonoBehaviour
         }
 
         // TP 확인 및 소모 - 성능 최적화된 체크
-        if (!DataManager.IsAvailable())
+        if (!DataManger.IsAvailable())
         {
-            Debug.LogWarning("[InGameUIManager] DataManager를 사용할 수 없습니다.");
+            Debug.LogWarning("[InGameUIManager] DataManger를 사용할 수 없습니다.");
             return;
         }
 
-        var currentTP = DataManager.Instance.GetTP();
+        var currentTP = DataManger.Instance.GetTP();
         if (currentTP <= 0)
         {
             Debug.LogWarning("[InGameUIManager] TP가 부족하여 터렛을 추가할 수 없습니다.");
@@ -239,7 +240,7 @@ public class InGameUIManager : MonoBehaviour
         }
 
         terretControl.SetAddTurret();
-        DataManager.Instance.SpendTP(1);
+        DataManger.Instance.SpendTP(1);
     }
 
     #endregion
@@ -293,30 +294,30 @@ public class InGameUIManager : MonoBehaviour
     /// </summary>
     private async UniTask InitializeCurrencyUIAsync(CancellationToken cancellationToken)
     {
-        if (DataManager.IsAvailable())
+        if (DataManger.IsAvailable())
         {
-            await SubscribeToDataManagerEventsAsync(cancellationToken);
+            await SubscribeToDataMangerEventsAsync(cancellationToken);
             await UpdateAllCurrencyDisplaysAsync(cancellationToken);
             
             Debug.Log("[InGameUIManager] 재화 UI 초기화 완료");
         }
         else
         {
-            Debug.LogWarning("[InGameUIManager] DataManager를 찾을 수 없어 기본 재화 정보를 표시합니다.");
+            Debug.LogWarning("[InGameUIManager] DataManger를 찾을 수 없어 기본 재화 정보를 표시합니다.");
             SetDefaultCurrencyDisplay();
         }
     }
 
-    private async UniTask SubscribeToDataManagerEventsAsync(CancellationToken cancellationToken)
+    private async UniTask SubscribeToDataMangerEventsAsync(CancellationToken cancellationToken)
     {
         await UniTask.Yield(cancellationToken);
         
-        if (!hasDataManagerEvents && DataManager.Instance != null)
+        if (!hasDataMangerEvents && DataManger.Instance != null)
         {
-            DataManager.Instance.OnCoinChanged += UpdateCoinDisplay;
-            DataManager.Instance.OnTPChanged += UpdateTpDisplay;
-            DataManager.Instance.OnWaterPointChanged += UpdateWaterPointDisplay;
-            hasDataManagerEvents = true;
+            DataManger.Instance.OnCoinChanged += UpdateCoinDisplay;
+            DataManger.Instance.OnTPChanged += UpdateTpDisplay;
+            DataManger.Instance.OnWaterPointChanged += UpdateWaterPointDisplay;
+            hasDataMangerEvents = true;
         }
     }
 
@@ -324,7 +325,7 @@ public class InGameUIManager : MonoBehaviour
     {
         await UniTask.Yield(cancellationToken);
         
-        var currencyInfo = DataManager.Instance.GetAllCurrencyInfo();
+        var currencyInfo = DataManger.Instance.GetAllCurrencyInfo();
         lastCurrencyInfo = currencyInfo;
         
         UpdateCoinDisplay(currencyInfo.coin);
@@ -370,11 +371,11 @@ public class InGameUIManager : MonoBehaviour
 
     private async UniTask UpdateCurrencyDisplayAsync(CancellationToken cancellationToken)
     {
-        if (!DataManager.IsAvailable()) return;
+        if (!DataManger.IsAvailable()) return;
 
         await UniTask.Yield(cancellationToken);
 
-        var currencyInfo = DataManager.Instance.GetAllCurrencyInfo();
+        var currencyInfo = DataManger.Instance.GetAllCurrencyInfo();
 
         // 성능 최적화: 값이 변경된 경우에만 업데이트
         if (!CurrencyInfoEquals(currencyInfo, lastCurrencyInfo))
@@ -384,14 +385,14 @@ public class InGameUIManager : MonoBehaviour
         }
     }
 
-    private bool CurrencyInfoEquals(DataManager.CurrencyInfo info1, DataManager.CurrencyInfo info2)
+    private bool CurrencyInfoEquals(DataManger.CurrencyInfo info1, DataManger.CurrencyInfo info2)
     {
         return info1.coin == info2.coin && 
                info1.tp == info2.tp && 
                info1.waterPoint == info2.waterPoint;
     }
 
-    private void UpdateChangedCurrencyDisplays(DataManager.CurrencyInfo currencyInfo)
+    private void UpdateChangedCurrencyDisplays(DataManger.CurrencyInfo currencyInfo)
     {
         if (currencyInfo.coin != lastCurrencyInfo.coin)
             UpdateCoinDisplay(currencyInfo.coin);
@@ -457,9 +458,9 @@ public class InGameUIManager : MonoBehaviour
     /// </summary>
     public bool CanAffordCost(int coinCost, int tpCost, int waterPointCost)
     {
-        if (!DataManager.IsAvailable()) return false;
+        if (!DataManger.IsAvailable()) return false;
 
-        var currencyInfo = DataManager.Instance.GetAllCurrencyInfo();
+        var currencyInfo = DataManger.Instance.GetAllCurrencyInfo();
         return currencyInfo.coin >= coinCost &&
                currencyInfo.tp >= tpCost &&
                currencyInfo.waterPoint >= waterPointCost;
@@ -471,7 +472,7 @@ public class InGameUIManager : MonoBehaviour
     public async UniTask<bool> SpendCurrencyAsync(int coinCost, int tpCost, int waterPointCost,
         CancellationToken cancellationToken = default)
     {
-        if (!DataManager.IsAvailable()) return false;
+        if (!DataManger.IsAvailable()) return false;
 
         if (!CanAffordCost(coinCost, tpCost, waterPointCost))
         {
@@ -494,7 +495,7 @@ public class InGameUIManager : MonoBehaviour
     /// </summary>
     public bool SpendCurrency(int coinCost, int tpCost, int waterPointCost)
     {
-        if (!DataManager.IsAvailable()) return false;
+        if (!DataManger.IsAvailable()) return false;
 
         if (!CanAffordCost(coinCost, tpCost, waterPointCost))
         {
@@ -516,9 +517,9 @@ public class InGameUIManager : MonoBehaviour
     {
         bool success = true;
         
-        if (coinCost > 0) success &= await DataManager.Instance.SpendCoinAsync(coinCost, cancellationToken);
-        if (tpCost > 0) success &= await DataManager.Instance.SpendTPAsync(tpCost, cancellationToken);
-        if (waterPointCost > 0) success &= await DataManager.Instance.SpendWaterPointAsync(waterPointCost, cancellationToken);
+        if (coinCost > 0) success &= await DataManger.Instance.SpendCoinAsync(coinCost, cancellationToken);
+        if (tpCost > 0) success &= await DataManger.Instance.SpendTPAsync(tpCost, cancellationToken);
+        if (waterPointCost > 0) success &= await DataManger.Instance.SpendWaterPointAsync(waterPointCost, cancellationToken);
         
         return success;
     }
@@ -527,9 +528,9 @@ public class InGameUIManager : MonoBehaviour
     {
         bool success = true;
         
-        if (coinCost > 0) success &= DataManager.Instance.SpendCoin(coinCost);
-        if (tpCost > 0) success &= DataManager.Instance.SpendTP(tpCost);
-        if (waterPointCost > 0) success &= DataManager.Instance.SpendWaterPoint(waterPointCost);
+        if (coinCost > 0) success &= DataManger.Instance.SpendCoin(coinCost);
+        if (tpCost > 0) success &= DataManger.Instance.SpendTP(tpCost);
+        if (waterPointCost > 0) success &= DataManger.Instance.SpendWaterPoint(waterPointCost);
         
         return success;
     }
@@ -754,12 +755,12 @@ public class InGameUIManager : MonoBehaviour
         cancellationTokenSource?.Dispose();
 
         // 이벤트 구독 해제
-        if (hasDataManagerEvents && DataManager.Instance != null)
+        if (hasDataMangerEvents && DataManger.Instance != null)
         {
-            DataManager.Instance.OnCoinChanged -= UpdateCoinDisplay;
-            DataManager.Instance.OnTPChanged -= UpdateTpDisplay;
-            DataManager.Instance.OnWaterPointChanged -= UpdateWaterPointDisplay;
-            hasDataManagerEvents = false;
+            DataManger.Instance.OnCoinChanged -= UpdateCoinDisplay;
+            DataManger.Instance.OnTPChanged -= UpdateTpDisplay;
+            DataManger.Instance.OnWaterPointChanged -= UpdateWaterPointDisplay;
+            hasDataMangerEvents = false;
         }
 
         Debug.Log("[InGameUIManager] 리소스 정리 완료");
