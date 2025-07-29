@@ -59,6 +59,19 @@ public class InGameUIManager : MonoBehaviour
     [SerializeField] private float countdownDuration = 10f; // 카운트다운 시간 (초)
     [SerializeField] private bool enableCountdown = true; // 카운트다운 활성화 여부
     
+    [Header( "워터 프레스 " )]
+    [SerializeField] private Button waterPressButton; // 워터 프레스 버튼
+    [SerializeField] private int waterPressCost = 10; // 워터 프레스 사용 비용 (워터포인트)
+    [SerializeField] private int waterPressReward = 50; // 워터 프레스 사용시 코인 보상
+    [SerializeField] private float waterPressCooldown = 5f; // 워터 프레스 쿨다운 시간 (초)
+    [SerializeField] private TMPro.TextMeshProUGUI waterPressCooldownText; // 쿨다운 표시 텍스트
+    [SerializeField] private bool enableHydroPrefabSpawn = false; // 수압프레스 프리팹 스폰 활성화 여부
+    
+    // 워터 프레스 상태 관리
+    private bool isWaterPressOnCooldown = false;
+    private float waterPressCooldownTimer = 0f;
+
+    
     // 게임 상태 관리
     private bool isGameStarted = false;
     private bool isCountdownActive = false;
@@ -211,6 +224,20 @@ public class InGameUIManager : MonoBehaviour
             addTurretButton.onClick.RemoveAllListeners(); // 기존 리스너 정리
             addTurretButton.onClick.AddListener(OnAddTurretButtonClicked);
         }
+        
+        // 워터 프레스 버튼 이벤트 설정
+        if (waterPressButton != null)
+        {
+            waterPressButton.onClick.RemoveAllListeners();
+            waterPressButton.onClick.AddListener(OnWaterPressButtonClicked);
+            
+            // 초기 상태 설정
+            UpdateWaterPressButtonState();
+        }
+        else
+        {
+            Debug.LogWarning("[InGameUIManager] 워터 프레스 버튼이 할당되지 않았습니다.");
+        }
     }
 
     #endregion
@@ -241,6 +268,224 @@ public class InGameUIManager : MonoBehaviour
 
         terretControl.SetAddTurret();
         DataManger.Instance.SpendTP(1);
+    }
+
+    /// <summary>
+    /// 워터 프레스 버튼 클릭 이벤트 핸들러
+    /// </summary>
+    private void OnWaterPressButtonClicked()
+    {
+        // 쿨다운 중인지 확인
+        if (isWaterPressOnCooldown)
+        {
+            Debug.LogWarning("[InGameUIManager] 워터 프레스가 쿨다운 중입니다.");
+            return;
+        }
+
+        // DataManger 사용 가능 여부 확인
+        if (!DataManger.IsAvailable())
+        {
+            Debug.LogWarning("[InGameUIManager] DataManger를 사용할 수 없습니다.");
+            return;
+        }
+
+        // 워터포인트 확인
+        var currentWaterPoint = DataManger.Instance.GetWaterPoint();
+        if (currentWaterPoint < waterPressCost)
+        {
+            Debug.LogWarning($"[InGameUIManager] 워터포인트가 부족합니다. 필요: {waterPressCost}, 보유: {currentWaterPoint}");
+            return;
+        }
+
+        // 워터 프레스 실행
+        ExecuteWaterPressAsync(cancellationTokenSource.Token).Forget();
+    }
+
+    #endregion
+
+    #region 워터 프레스 시스템
+
+    /// <summary>
+    /// 워터 프레스를 실행합니다.
+    /// </summary>
+    private async UniTask ExecuteWaterPressAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            Debug.Log($"[InGameUIManager] 워터 프레스 실행 시작 - 비용: {waterPressCost}, 보상: {waterPressReward}");
+
+            // 워터포인트 소모
+            bool spendSuccess = DataManger.Instance.SpendWaterPoint(waterPressCost);
+            if (!spendSuccess)
+            {
+                Debug.LogError("[InGameUIManager] 워터포인트 소모 실패");
+                return;
+            }
+
+            // 코인 보상 지급
+            DataManger.Instance.AddCoin(waterPressReward);
+
+            // 수압프레스 스폰 옵션이 활성화된 경우 GameManager를 통해 스폰
+            if (enableHydroPrefabSpawn && gameManager != null)
+            {
+                bool hydroSpawnSuccess = await gameManager.SpawnHydroWaterPressAsync(cancellationToken);
+                
+                if (hydroSpawnSuccess)
+                {
+                    Debug.Log("[InGameUIManager] 수압프레스 스폰 성공!");
+                }
+                else
+                {
+                    Debug.LogWarning("[InGameUIManager] 수압프레스 스폰 실패, 기본 워터프레스 효과만 적용됩니다.");
+                }
+            }
+
+            // 쿨다운 시작
+            await StartWaterPressCooldownAsync(cancellationToken);
+
+            Debug.Log($"[InGameUIManager] 워터 프레스 완료 - 워터포인트(-{waterPressCost}), 코인(+{waterPressReward})");
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[InGameUIManager] 워터 프레스 실행 오류: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// 워터 프레스 쿨다운을 시작합니다.
+    /// </summary>
+    private async UniTask StartWaterPressCooldownAsync(CancellationToken cancellationToken)
+    {
+        isWaterPressOnCooldown = true;
+        waterPressCooldownTimer = waterPressCooldown;
+
+        // 버튼 상태 업데이트
+        UpdateWaterPressButtonState();
+
+        try
+        {
+            while (waterPressCooldownTimer > 0 && !cancellationToken.IsCancellationRequested)
+            {
+                // 쿨다운 텍스트 업데이트
+                UpdateWaterPressCooldownDisplay();
+
+                // 0.1초마다 업데이트
+                await UniTask.Delay(100, DelayType.DeltaTime, PlayerLoopTiming.Update, cancellationToken);
+                waterPressCooldownTimer -= 0.1f;
+            }
+
+            // 쿨다운 완료
+            isWaterPressOnCooldown = false;
+            waterPressCooldownTimer = 0f;
+
+            // UI 업데이트
+            UpdateWaterPressButtonState();
+            UpdateWaterPressCooldownDisplay();
+
+            Debug.Log("[InGameUIManager] 워터 프레스 쿨다운 완료");
+        }
+        catch (System.OperationCanceledException)
+        {
+            Debug.Log("[InGameUIManager] 워터 프레스 쿨다운이 취소되었습니다.");
+        }
+    }
+
+    /// <summary>
+    /// 워터 프레스 버튼 상태를 업데이트합니다.
+    /// </summary>
+    private void UpdateWaterPressButtonState()
+    {
+        if (waterPressButton == null) return;
+
+        bool canUse = !isWaterPressOnCooldown && 
+                      DataManger.IsAvailable() && 
+                      DataManger.Instance.GetWaterPoint() >= waterPressCost;
+
+        waterPressButton.interactable = canUse;
+
+        // 버튼 색상 변경 (선택사항)
+        var colors = waterPressButton.colors;
+        if (isWaterPressOnCooldown)
+        {
+            colors.normalColor = Color.gray;
+            colors.disabledColor = Color.gray;
+        }
+        else
+        {
+            colors.normalColor = Color.white;
+            colors.disabledColor = Color.gray;
+        }
+        waterPressButton.colors = colors;
+    }
+
+    /// <summary>
+    /// 워터 프레스 쿨다운 텍스트를 업데이트합니다.
+    /// </summary>
+    private void UpdateWaterPressCooldownDisplay()
+    {
+        if (waterPressCooldownText == null) return;
+
+        if (isWaterPressOnCooldown && waterPressCooldownTimer > 0)
+        {
+            waterPressCooldownText.text = $"쿨다운: {waterPressCooldownTimer:F1}s";
+            waterPressCooldownText.color = Color.red;
+            waterPressCooldownText.gameObject.SetActive(true);
+        }
+        else
+        {
+            waterPressCooldownText.text = "사용 가능";
+            waterPressCooldownText.color = Color.green;
+            
+            // 쿨다운이 없으면 텍스트를 숨길 수도 있습니다
+            // waterPressCooldownText.gameObject.SetActive(false);
+        }
+    }
+
+    /// <summary>
+    /// 워터 프레스 사용 가능 여부를 확인합니다.
+    /// </summary>
+    public bool CanUseWaterPress()
+    {
+        return !isWaterPressOnCooldown && 
+               DataManger.IsAvailable() && 
+               DataManger.Instance.GetWaterPoint() >= waterPressCost;
+    }
+
+    /// <summary>
+    /// 워터 프레스 쿨다운 시간을 설정합니다.
+    /// </summary>
+    public void SetWaterPressCooldown(float cooldownTime)
+    {
+        if (cooldownTime >= 0)
+        {
+            waterPressCooldown = cooldownTime;
+            Debug.Log($"[InGameUIManager] 워터 프레스 쿨다운이 {cooldownTime}초로 설정되었습니다.");
+        }
+    }
+
+    /// <summary>
+    /// 워터 프레스 비용을 설정합니다.
+    /// </summary>
+    public void SetWaterPressCost(int cost)
+    {
+        if (cost >= 0)
+        {
+            waterPressCost = cost;
+            UpdateWaterPressButtonState(); // 버튼 상태 즉시 업데이트
+            Debug.Log($"[InGameUIManager] 워터 프레스 비용이 {cost}로 설정되었습니다.");
+        }
+    }
+
+    /// <summary>
+    /// 워터 프레스 보상을 설정합니다.
+    /// </summary>
+    public void SetWaterPressReward(int reward)
+    {
+        if (reward >= 0)
+        {
+            waterPressReward = reward;
+            Debug.Log($"[InGameUIManager] 워터 프레스 보상이 {reward}로 설정되었습니다.");
+        }
     }
 
     #endregion
@@ -442,6 +687,9 @@ public class InGameUIManager : MonoBehaviour
         {
             waterPointText.text = $"워터포인트: {amount:N0}";
             waterPointText.color = amount > 0 ? Color.black : Color.red;
+            
+            // 워터 프레스 버튼 상태도 함께 업데이트
+            UpdateWaterPressButtonState();
         }
         else
         {
@@ -794,6 +1042,17 @@ public class InGameUIManager : MonoBehaviour
     /// 남은 카운트다운 시간을 반환합니다.
     /// </summary>
     public float CountdownDuration => countdownDuration;
+
+    /// <summary>
+    /// 워터 프레스가 쿨다운 중인지 확인합니다.
+    /// </summary>
+    public bool IsWaterPressOnCooldown => isWaterPressOnCooldown;
+
+    /// <summary>
+    /// 남은 워터 프레스 쿨다운 시간을 반환합니다.
+    /// </summary>
+    public float WaterPressCooldownTimer => waterPressCooldownTimer;
+
 
     #endregion
 }

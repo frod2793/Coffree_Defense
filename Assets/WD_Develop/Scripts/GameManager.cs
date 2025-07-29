@@ -80,6 +80,7 @@ public class GameManager : MonoBehaviour
     public static event Action<int, int> OnEnemyKilled; // (현재 처치 수, 전체 수)
     public static event Action OnGameOver;
     public static event Action OnGameVictory;
+    public static event Action<HydroWaterPress> OnHydroWaterPressSpawned; // 수압프레스 생성 이벤트
 
     // 공개 속성
     public int CurrentWave => currentWaveIndex + 1;
@@ -89,6 +90,13 @@ public class GameManager : MonoBehaviour
     public bool IsFightingPhase => currentState == GameState.Fighting;
     public int EnemiesKilled => enemiesKilled;
     public int TotalEnemies => totalEnemiesInWave;
+    
+    // 수압프레스 공개 속성
+    public int HydroPressCost => hydroPressCost;
+    public float HydroPressCooldown => hydroPressCooldown;
+    public int ActiveHydroPressCount { get { CleanupHydroPresses(); return activeHydroPresses.Count; } }
+    public bool IsHydroPressReady => CanUseHydroWaterPress();
+    public float HydroPressRemainingCooldown => GetHydroPressRemainingCooldown();
 
     #endregion
 
@@ -475,60 +483,107 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public bool SpawnHydroWaterPress()
     {
-        // 쿨다운 체크
-        if (Time.time - lastHydroPressTime < hydroPressCooldown)
-        {
-            float remainingCooldown = hydroPressCooldown - (Time.time - lastHydroPressTime);
-            Debug.Log($"[GameManager] 수압프레스 쿨다운 중: {remainingCooldown:F1}초 남음");
-            return false;
-        }
+        return SpawnHydroWaterPressAsync(cancellationTokenSource.Token).GetAwaiter().GetResult();
+    }
 
-        // 코인 체크
-        if (DataManger.IsAvailable())
+    /// <summary>
+    /// 수압프레스를 비동기로 생성합니다
+    /// </summary>
+    public async UniTask<bool> SpawnHydroWaterPressAsync(CancellationToken cancellationToken = default)
+    {
+        try
         {
-            if (DataManger.Instance.GetCoin() < hydroPressCost)
+            // 게임 활성 상태 체크
+            if (!isGameActive)
             {
-                Debug.Log($"[GameManager] 수압프레스 비용 부족: {hydroPressCost} 코인 필요");
+                Debug.LogWarning("[GameManager] 게임이 비활성 상태에서는 수압프레스를 사용할 수 없습니다.");
                 return false;
             }
+
+            // 쿨다운 체크
+            if (Time.time - lastHydroPressTime < hydroPressCooldown)
+            {
+                float remainingCooldown = hydroPressCooldown - (Time.time - lastHydroPressTime);
+                Debug.Log($"[GameManager] 수압프레스 쿨다운 중: {remainingCooldown:F1}초 남음");
+                return false;
+            }
+
+            // DataManger 유효성 체크
+            if (!DataManger.IsAvailable())
+            {
+                Debug.LogWarning("[GameManager] DataManger를 사용할 수 없습니다!");
+                return false;
+            }
+
+            // 코인 체크
+            if (DataManger.Instance.GetCoin() < hydroPressCost)
+            {
+                int currentCoin = DataManger.Instance.GetCoin();
+                Debug.Log($"[GameManager] 수압프레스 비용 부족: {hydroPressCost} 코인 필요, 현재 {currentCoin} 코인 보유");
+                return false;
+            }
+
+            // 수압프레스 프리팹 체크
+            if (hydroWaterPrefab == null)
+            {
+                Debug.LogError("[GameManager] 수압프레스 프리팹이 설정되지 않았습니다!");
+                return false;
+            }
+
+            await UniTask.Yield(cancellationToken);
+
+            // 기존 파괴된 수압프레스 정리
+            CleanupHydroPresses();
+
+            // 스폰 위치 및 방향 계산
+            Vector3 spawnPosition = GetHydroPressSpawnPosition();
+            Vector3 spawnDirection = GetHydroPressDirection();
+            Quaternion spawnRotation = Quaternion.LookRotation(spawnDirection);
+
+            // 수압프레스 생성
+            HydroWaterPress hydroPress = Instantiate(hydroWaterPrefab, spawnPosition, spawnRotation);
+            
+            if (hydroPress == null)
+            {
+                Debug.LogError("[GameManager] 수압프레스 생성에 실패했습니다!");
+                return false;
+            }
+
+            // 수압프레스 초기화
+            hydroPress.Initialize(spawnDirection);
+            
+            // 활성 수압프레스 목록에 추가
+            activeHydroPresses.Add(hydroPress);
+            
+            // 코인 차감
+            bool spendSuccess = DataManger.Instance.SpendCoin(hydroPressCost);
+            if (!spendSuccess)
+            {
+                Debug.LogError("[GameManager] 코인 차감에 실패했습니다!");
+                if (hydroPress != null)
+                {
+                    Destroy(hydroPress.gameObject);
+                    activeHydroPresses.Remove(hydroPress);
+                }
+                return false;
+            }
+
+            // 쿨다운 갱신
+            lastHydroPressTime = Time.time;
+
+            // 성공 로그 및 이벤트 발생
+            Debug.Log($"[GameManager] 수압프레스 생성 완료 - 위치: {spawnPosition}, 방향: {spawnDirection}, 비용: {hydroPressCost} 코인");
+            
+            // 수압프레스 생성 이벤트 (필요시 추가 가능)
+            OnHydroWaterPressSpawned?.Invoke(hydroPress);
+
+            return true;
         }
-        else
+        catch (Exception ex)
         {
-            Debug.LogWarning("[GameManager] DataManger를 사용할 수 없습니다!");
+            Debug.LogError($"[GameManager] 수압프레스 생성 중 오류 발생: {ex.Message}");
             return false;
         }
-
-        // 수압프레스 프리팹 체크
-        if (hydroWaterPrefab == null)
-        {
-            Debug.LogError("[GameManager] 수압프레스 프리팹이 설정되지 않았습니다!");
-            return false;
-        }
-
-        // 스폰 위치 설정 (기본값 사용 또는 플레이어 앞쪽)
-        Vector3 spawnPosition = GetHydroPressSpawnPosition();
-        Vector3 spawnDirection = GetHydroPressDirection();
-
-        // 수압프레스 생성
-        HydroWaterPress hydroPress = Instantiate(hydroWaterPrefab, spawnPosition, Quaternion.identity);
-        
-        // 수압프레스 초기화
-        hydroPress.Initialize(spawnDirection);
-        
-        // 활성 수압프레스 목록에 추가
-        activeHydroPresses.Add(hydroPress);
-        
-        // 코인 차감
-        if (DataManger.IsAvailable())
-        {
-            DataManger.Instance.SpendCoin(hydroPressCost);
-        }
-
-        // 쿨다운 갱신
-        lastHydroPressTime = Time.time;
-
-        Debug.Log($"[GameManager] 수압프레스 생성 완료 - 위치: {spawnPosition}, 방향: {spawnDirection}");
-        return true;
     }
 
     /// <summary>
