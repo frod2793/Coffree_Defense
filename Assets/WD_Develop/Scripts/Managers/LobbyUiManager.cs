@@ -17,16 +17,32 @@ namespace WD_Develop.Scripts.Managers
         private Button gameStartButton; // 아이템 구매 창에서 게임 시작 버튼
         [SerializeField]
         private Button closeButton; // 아이템 구매 창에서 닫기 버튼
+
         [SerializeField]
         private Button buyTpButton; // 포탑 포인트 구매 버튼 
         [SerializeField]
         private Button buyWwButton; // 워터 포인트 구매 버튼
+
+        [SerializeField]
+        private Button sellTpButton; // 포탑 포인트 판매 버튼 
+        [SerializeField]
+        private Button sellWwButton; // 워터 포인트 판매 버튼
+
+        public TMPro.TextMeshProUGUI coinText; // 코인 표시용 텍스트
+        public TMPro.TextMeshProUGUI turretPointsText; // 포탑 포인트 표시용 텍스트
+        public TMPro.TextMeshProUGUI waterPointsText; // 워터 포인트 표시용
+        public int turretPointsCost = 100; // 포탑 포인트 구매 비용
+        public int waterPointsCost = 150; // 워터 포인트 구매 비용
+        public int boughtTurretPoints = 10; // 포탑 포인트 구매시 획득량 / 판매시 소비량
+        public int boughtWaterPoints = 10; // 워터 포인트 구매시 획득량 / 판매시 소비량
+        public float salesRatio = 0.8f; // 판매시 코인 획득 비율
 
         [Header("애니메이션 설정")]
         [SerializeField] private float animationDuration = 0.5f;
         [SerializeField] private float scaleAmount = 1.1f;
 
         // 플레이어 포인트
+        private int userCoins;
         private int turretPoints;
         private int waterPoints;
 
@@ -34,18 +50,45 @@ namespace WD_Develop.Scripts.Managers
         {
             InitializeButtons();
             InitializePopup();
+
+            UserPointUpdate();
+        }
+
+        private void UserPointUpdate()
+        {
+            userCoins = DataManger.Instance.GetCoin();
+            turretPoints = DataManger.Instance.GetTp();
+            waterPoints = DataManger.Instance.GetWaterPoint();
+
+            // Coin 텍스트 업데이트
+            if (coinText != null)
+            {
+                coinText.text = "Coin : " + userCoins;
+            }
+            // TP 텍스트 업데이트
+            if (turretPointsText != null)
+            {
+                turretPointsText.text = "Turret Points : " + turretPoints;
+            }
+            // WP 텍스트 업데이트
+            if (waterPointsText != null)
+            {
+                waterPointsText.text = "Water Points : " + waterPoints;
+            }
         }
 
         private void InitializeButtons()
         {
             // 플레이 버튼 이벤트 연결
             playButton.onClick.AddListener(OnPlayButtonClicked);
-            
+
             // 팝업 내 버튼들 이벤트 연결
             gameStartButton.onClick.AddListener(OnGameStartButtonClicked);
             closeButton.onClick.AddListener(OnCloseButtonClicked);
             buyTpButton.onClick.AddListener(OnBuyTurretPointsClicked);
             buyWwButton.onClick.AddListener(OnBuyWaterPointsClicked);
+            sellTpButton.onClick.AddListener(OnSellTurretPointsClicked);
+            sellWwButton.onClick.AddListener(OnSellWaterPointsClicked);
         }
 
         private void InitializePopup()
@@ -85,13 +128,14 @@ namespace WD_Develop.Scripts.Managers
         private void OnBuyTurretPointsClicked()
         {
             // 포탑 포인트 구매 로직
-            int cost = 100; // 구매 비용
-            
-            if (CanAfford(cost))
+            if (CanAffordCost(turretPointsCost))
             {
-                turretPoints += 10;
-                Debug.Log($"포탑 포인트 구매 완료! 현재 포탑 포인트: {turretPoints}");
+                // turretPoints += 10;
+                DataManger.Instance.SpendCoin(turretPointsCost);
+                DataManger.Instance.AddTP(boughtTurretPoints);
+                UserPointUpdate();
                 
+                Debug.Log($"포탑 포인트 구매 완료! 현재 포탑 포인트: {turretPoints}");
                 // 구매 성공 애니메이션
                 AnimateButtonPress(buyTpButton.gameObject);
             }
@@ -106,11 +150,14 @@ namespace WD_Develop.Scripts.Managers
         private void OnBuyWaterPointsClicked()
         {
             // 워터 포인트 구매 로직
-            int cost = 150; // 구매 비용
             
-            if (CanAfford(cost))
+            if (CanAffordCost(waterPointsCost))
             {
-                waterPoints += 10;
+                // waterPoints += 10;
+                DataManger.Instance.SpendCoin(waterPointsCost);
+                DataManger.Instance.AddWaterPoint(boughtWaterPoints);
+                UserPointUpdate();
+
                 Debug.Log($"워터 포인트 구매 완료! 현재 워터 포인트: {waterPoints}");
                 
                 // 구매 성공 애니메이션
@@ -124,6 +171,38 @@ namespace WD_Develop.Scripts.Managers
             }
         }
 
+        private void OnSellTurretPointsClicked()
+        {
+            if (CanAffordTP(boughtTurretPoints))
+            {
+                DataManger.Instance.SpendTP(boughtTurretPoints);
+                DataManger.Instance.AddCoin((int)(turretPointsCost * salesRatio)); // 판매시 판매 비율 적용
+                UserPointUpdate();
+
+                Debug.Log($"포탑 포인트 판매 완료! 현재 포탑 포인트: {turretPoints}");
+            }
+            else
+            {
+                Debug.Log("포탑 포인트를 판매할 수 없습니다. 포탑 포인트가 부족합니다.");
+            }
+        }
+
+        private void OnSellWaterPointsClicked()
+        {
+            if (CanAffordWP(boughtWaterPoints))
+            {
+                DataManger.Instance.SpendWaterPoint(boughtWaterPoints);
+                DataManger.Instance.AddCoin((int)(waterPointsCost * salesRatio)); // 판매시 판매 비율 적용
+                UserPointUpdate();
+
+                Debug.Log($"워터 포인트 판매 완료! 현재 워터 포인트: {waterPoints}");
+            }
+            else
+            {
+                Debug.Log("워터 포인트를 판매할 수 없습니다. 워터 포인트가 부족합니다.");
+            }
+        }
+
         #endregion
 
         #region 팝업 애니메이션
@@ -133,7 +212,7 @@ namespace WD_Develop.Scripts.Managers
             if (buyPopUpPanel != null)
             {
                 buyPopUpPanel.SetActive(true);
-                
+
                 // 팝업 등장 애니메이션 (스케일 + 바운스 효과)
                 buyPopUpPanel.transform.localScale = Vector3.zero;
                 buyPopUpPanel.transform.DOScale(Vector3.one, animationDuration)
@@ -178,12 +257,22 @@ namespace WD_Develop.Scripts.Managers
 
         #region 유틸리티 메서드
 
-        private bool CanAfford(int cost)
+        private bool CanAffordCost(int cost)
         {
             // 실제 코인 시스템과 연동하여 구현
             // 현재는 예시로 cost에 따른 간단한 로직
-            int currentCoins = 1000; // 예시 코인 수량
-            return currentCoins >= cost;
+            // int currentCoins = 1000; // 예시 코인 수량
+            return userCoins >= cost;
+        }
+
+        private bool CanAffordTP(int point)
+        {
+            return turretPoints >= point;
+        }
+
+        private bool CanAffordWP(int point)
+        {
+            return waterPoints >= point;
         }
 
         private void OnDestroy()
