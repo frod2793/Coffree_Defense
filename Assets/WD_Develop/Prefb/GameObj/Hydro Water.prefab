@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 1317256165911746021}
   - component: {fileID: 8147450752988610194}
   - component: {fileID: 6384096959748823895}
+  - component: {fileID: 6923825897135939143}
   m_Layer: 0
   m_Name: Hydro Water
   m_TagString: Untagged
@@ -108,3 +109,27 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &6923825897135939143
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1452757537481581633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf3e0077a9fc4b3497c84e94b36127ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  moveSpeed: 8
+  damage: 50
+  knockbackForce: 10
+  knockbackDuration: 0.8
+  lifeTime: 10
+  detectionRadius: 1.5
+  hitEffect: {fileID: 0}
+  destroyEffect: {fileID: 0}
+  waterEffect: {fileID: 0}
+  audioSource: {fileID: 0}
+  shootSound: {fileID: 0}
+  hitSound: {fileID: 0}
