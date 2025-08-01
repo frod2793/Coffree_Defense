@@ -1062,6 +1062,18 @@ MonoBehaviour:
     - enemyPrefab: {fileID: 1031226010}
       count: 10
       spawnInterval: 3
+  - waveNumber: 2
+    spawnPoint: {x: 0, y: 0, z: 0}
+    enemyGroups:
+    - enemyPrefab: {fileID: 1031226010}
+      count: 20
+      spawnInterval: 3
+  - waveNumber: 3
+    spawnPoint: {x: 0, y: 0, z: 0}
+    enemyGroups:
+    - enemyPrefab: {fileID: 1031226010}
+      count: 30
+      spawnInterval: 3
   uiManager: {fileID: 2079917346}
   turretControl: {fileID: 1800508100}
   spawnManager: {fileID: 961492029}
@@ -1069,37 +1081,6 @@ MonoBehaviour:
   hydroSpawnPoint: {fileID: 3113389280622022044}
   hydroPressCost: 100
   hydroPressCooldown: 10
---- !u!1 &683721793
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 683721794}
-  m_Layer: 0
-  m_Name: spawnPoint
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &683721794
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 683721793}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.57, y: 1, z: 12.96}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &709298258
 GameObject:
   m_ObjectHideFlags: 0
@@ -1276,8 +1257,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe78062bb4cc04f6fb45904033d2f0f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  spawnPoints:
-  - {fileID: 683721794}
+  spawnAreaMin: {x: -20.12, y: 0.1, z: 15}
+  spawnAreaMax: {x: 20.12, y: 1, z: 20.3}
   enemyParent: {fileID: 288833742}
   enemyPoolData:
   - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
@@ -3573,7 +3554,6 @@ SceneRoots:
   - {fileID: 357428847}
   - {fileID: 3113389280622022044}
   - {fileID: 288833742}
-  - {fileID: 683721794}
   - {fileID: 1863714418}
   - {fileID: 1670621045}
   - {fileID: 1431620958}

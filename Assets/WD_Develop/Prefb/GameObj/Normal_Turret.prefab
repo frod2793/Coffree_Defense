@@ -256,6 +256,7 @@ MonoBehaviour:
   turretHead: {fileID: 426027159090997811}
   range: 15
   turnSpeed: 10
+  fireRate: 10
   enemyTag: Enemy
   targetUpdateInterval: 0.5
   bulletPoolMaxSize: 20

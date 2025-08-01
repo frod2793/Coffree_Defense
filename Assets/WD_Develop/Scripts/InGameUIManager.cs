@@ -4,6 +4,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using Cysharp.Threading.Tasks;
 using System.Threading;
+using TMPro;
 
 /// <summary>
 /// 인게임 UI 관리자 - UniTask 기반 비동기 처리로 최적화
@@ -44,6 +45,8 @@ public class InGameUIManager : MonoBehaviour
     [SerializeField] private List<Image> images;
     [SerializeField] private Button addTurretButton;
     [SerializeField] private List<GameObject> PrefabList;
+    
+    [SerializeField] private TMP_Text waveText; // 현재 웨이브 표시용 텍스트
 
     [Header("사용자 데이터")]
     [SerializeField] private TMPro.TextMeshProUGUI coinText;
@@ -965,6 +968,62 @@ public class InGameUIManager : MonoBehaviour
 
     #endregion
 
+    #region 웨이브 카운트다운 시스템
+
+    /// <summary>
+    /// 웨이브 시작 전 카운트다운을 표시합니다.
+    /// </summary>
+    public async UniTask ShowWaveCountdownAsync(float duration, CancellationToken cancellationToken = default)
+    {
+        if (GameCountDownText == null) return;
+        float remainingTime = duration;
+        GameCountDownText.gameObject.SetActive(true);
+        GameCountDownText.transform.localScale = Vector3.one;
+
+        try
+        {
+            while (remainingTime > 0 && (this != null) && !cancellationToken.IsCancellationRequested)
+            {
+                int seconds = Mathf.CeilToInt(remainingTime);
+                if (seconds > 5)
+                {
+                    GameCountDownText.text = $"웨이브 시작까지\n{seconds}초";
+                    GameCountDownText.color = Color.black;
+                    GameCountDownText.transform.localScale = Vector3.one;
+                }
+                else if (seconds > 0)
+                {
+                    GameCountDownText.text = $"{seconds}";
+                    GameCountDownText.color = Color.blue;
+                    float scale = 1f + (6 - seconds) * 0.2f;
+                    GameCountDownText.transform.localScale = Vector3.one * scale;
+                }
+                else
+                {
+                    GameCountDownText.text = "WAVE!";
+                    GameCountDownText.color = Color.cyan;
+                    GameCountDownText.transform.localScale = Vector3.one * 1.5f;
+                }
+                await UniTask.Delay(1000, DelayType.DeltaTime, PlayerLoopTiming.Update, cancellationToken);
+                remainingTime -= 1f;
+            }
+            // "WAVE!" 메시지 잠시 표시
+            GameCountDownText.text = "WAVE!";
+            GameCountDownText.color = Color.cyan;
+            GameCountDownText.transform.localScale = Vector3.one * 1.5f;
+            await UniTask.Delay(1000, DelayType.DeltaTime, PlayerLoopTiming.Update, cancellationToken);
+        }
+        catch (System.OperationCanceledException) { }
+        finally
+        {
+            if (GameCountDownText != null && GameCountDownText.gameObject != null)
+                GameCountDownText.gameObject.SetActive(false);
+            GameCountDownText.transform.localScale = Vector3.one;
+        }
+    }
+
+    #endregion
+
     #region 시스템 검증
 
     /// <summary>
@@ -1055,4 +1114,45 @@ public class InGameUIManager : MonoBehaviour
 
 
     #endregion
+
+    /// <summary>
+    /// 웨이브 안내 텍스트를 페이드 인/아웃으로 표시
+    /// </summary>
+    public async UniTask ShowWaveTextAsync(string message, float fadeInTime = 0.5f, float displayTime = 1.5f, float fadeOutTime = 0.5f)
+    {
+        if (waveText == null) return;
+        var color = waveText.color;
+        color.a = 0f;
+        waveText.color = color;
+        waveText.text = message;
+        waveText.gameObject.SetActive(true);
+
+        // 페이드 인
+        float t = 0f;
+        while (t < fadeInTime)
+        {
+            t += Time.deltaTime;
+            color.a = Mathf.Lerp(0f, 1f, t / fadeInTime);
+            waveText.color = color;
+            await UniTask.Yield();
+        }
+        color.a = 1f;
+        waveText.color = color;
+
+        // 표시 유지
+        await UniTask.Delay((int)(displayTime * 1000));
+
+        // 페이드 아웃
+        t = 0f;
+        while (t < fadeOutTime)
+        {
+            t += Time.deltaTime;
+            color.a = Mathf.Lerp(1f, 0f, t / fadeOutTime);
+            waveText.color = color;
+            await UniTask.Yield();
+        }
+        color.a = 0f;
+        waveText.color = color;
+        waveText.gameObject.SetActive(false);
+    }
 }

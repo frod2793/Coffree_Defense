@@ -22,6 +22,7 @@ public class NormalTurret : TurretBase
     [Header("터렛 스탯")]
     [SerializeField] private float range = 15f;
     [SerializeField] private float turnSpeed = 10f;
+    [SerializeField] private float fireRate = 1f; // 초당 발사 횟수(발사속도)
     [SerializeField] private string enemyTag = "Enemy";
     
     [Header("성능 설정")]
@@ -176,12 +177,11 @@ public class NormalTurret : TurretBase
         if (target != null)
         {
             ChangeState(TerretState.Active);
-            
             if (fireCountdown <= 0f)
             {
                 // 비동기 발사
                 ShootAsync(normalTurretCancellationTokenSource.Token).Forget();
-                fireCountdown = 1f / attackSpeed; // 공격 속도에 따라 다음 발사 시간 설정
+                fireCountdown = 1f / fireRate; // fireRate(초당 발사속도) 적용
             }
         }
         else

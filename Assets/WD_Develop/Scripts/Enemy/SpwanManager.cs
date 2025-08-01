@@ -34,7 +34,9 @@ public class SpawnManager : MonoBehaviour
     #region 필드 및 속성
 
     [Header("스폰 설정")]
-    [SerializeField] private List<Transform> spawnPoints = new List<Transform>();
+    [SerializeField] private Vector3 spawnAreaMin = new Vector3(-5, 0, -5);
+    [SerializeField] private Vector3 spawnAreaMax = new Vector3(5, 0, 5);
+    // [SerializeField] private List<Transform> spawnPoints = new List<Transform>(); // 기존 스폰포인트 비활성화
     [SerializeField] private Transform enemyParent; // 적들의 부모 오브젝트
     
     [Header("오브젝트 풀 설정")]
@@ -108,11 +110,6 @@ public class SpawnManager : MonoBehaviour
 
     private void ValidateComponents()
     {
-        if (spawnPoints.Count == 0)
-        {
-            Debug.LogError("[SpawnManager] 스폰 포인트가 설정되지 않았습니다!");
-        }
-        
         if (enemyParent == null)
         {
             GameObject parent = new GameObject("Enemies");
@@ -305,13 +302,24 @@ public class SpawnManager : MonoBehaviour
     private async UniTask ProcessSpawnQueueAsync(CancellationToken cancellationToken)
     {
         int spawnedThisFrame = 0;
-        
         while (spawnQueue.Count > 0 && spawnedThisFrame < maxEnemiesPerFrame)
         {
             var request = spawnQueue.Dequeue();
-            await SpawnEnemyAsync(request, cancellationToken);
+            // null 체크 및 파괴된 오브젝트 방지
+            if (request.enemyPrefab == null)
+            {
+                Debug.LogWarning("[SpawnManager] enemyPrefab이 null이어서 스폰을 건너뜁니다.");
+                continue;
+            }
+            try
+            {
+                await SpawnEnemyAsync(request, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[SpawnManager] SpawnEnemyAsync 예외: {ex.Message}");
+            }
             spawnedThisFrame++;
-            
             if (spawnedThisFrame >= maxEnemiesPerFrame)
             {
                 await UniTask.Yield(cancellationToken);
@@ -608,20 +616,11 @@ public class SpawnManager : MonoBehaviour
 
     private Vector3 GetRandomSpawnPosition(Vector3 basePosition)
     {
-        if (spawnPoints.Count > 0)
-        {
-            Transform spawnPoint = spawnPoints[UnityEngine.Random.Range(0, spawnPoints.Count)];
-            return spawnPoint.position;
-        }
-        
-        // 기본 스폰 포인트 주변에 랜덤 오프셋 적용
-        Vector3 randomOffset = new Vector3(
-            UnityEngine.Random.Range(-2f, 2f),
-            0,
-            UnityEngine.Random.Range(-2f, 2f)
-        );
-        
-        return basePosition + randomOffset;
+        // spawnPoints 대신 bound 내 랜덤 위치 반환
+        float x = UnityEngine.Random.Range(spawnAreaMin.x, spawnAreaMax.x);
+        float y = UnityEngine.Random.Range(spawnAreaMin.y, spawnAreaMax.y);
+        float z = UnityEngine.Random.Range(spawnAreaMin.z, spawnAreaMax.z);
+        return new Vector3(x, y, z);
     }
 
     /// <summary>
@@ -657,6 +656,18 @@ public class SpawnManager : MonoBehaviour
     }
 
     #endregion
+
+#if UNITY_EDITOR
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = new Color(0f, 1f, 0f, 0.3f);
+        Vector3 center = (spawnAreaMin + spawnAreaMax) * 0.5f;
+        Vector3 size = spawnAreaMax - spawnAreaMin;
+        Gizmos.DrawCube(center, size);
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireCube(center, size);
+    }
+#endif
 }
 
 #region 데이터 구조

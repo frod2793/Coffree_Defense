@@ -270,9 +270,14 @@ public class GameManager : MonoBehaviour
     private async UniTask StartWaveAsync(CancellationToken cancellationToken)
     {
         ChangeGameState(GameState.Fighting);
-        
         await UniTask.Yield(cancellationToken);
-        
+
+        // 웨이브 안내 텍스트 표시
+        if (uiManager != null)
+        {
+            await uiManager.ShowWaveTextAsync($"Wave {CurrentWave} 시작!");
+        }
+
         // 현재 웨이브 데이터 가져오기
         WaveData currentWaveData = GetCurrentWaveData();
         if (currentWaveData != null)
@@ -284,7 +289,6 @@ public class GameManager : MonoBehaviour
             Debug.LogError($"[GameManager] 웨이브 {CurrentWave} 데이터를 찾을 수 없습니다!");
             await CompleteWaveAsync(cancellationToken);
         }
-        
         OnWaveStarted?.Invoke(CurrentWave);
         Debug.Log($"[GameManager] 웨이브 {CurrentWave} 시작!");
     }
