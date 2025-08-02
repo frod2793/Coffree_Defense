@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using Cysharp.Threading.Tasks;
 using System.Threading;
 using TMPro;
+using WD_Develop.Scripts;
 
 /// <summary>
 /// 인게임 UI 관리자 - UniTask 기반 비동기 처리로 최적화
@@ -112,27 +113,13 @@ public class InGameUIManager : MonoBehaviour
     {
         try
         {
-            // 컴포넌트 찾기
             await FindRequiredComponentsAsync(cancellationToken);
-            
-            // 이벤트 시스템 설정
             await SetupEventSystemAsync(cancellationToken);
-            
-            // 시스템 검증
             await ValidateSystemsAsync(cancellationToken);
-            
-            // 재화 UI 초기화
             await InitializeCurrencyUIAsync(cancellationToken);
-            
-            // 게임 카운트다운 시작
             if (enableCountdown && GameCountDownText != null)
-            {
                 await StartGameCountdownAsync(cancellationToken);
-            }
-            
-            // 주기적 업데이트 시작
             StartPeriodicUpdateAsync(cancellationToken).Forget();
-            
             isInitialized = true;
             Debug.Log("[InGameUIManager] 초기화 완료");
         }
@@ -144,16 +131,13 @@ public class InGameUIManager : MonoBehaviour
 
     private async UniTask FindRequiredComponentsAsync(CancellationToken cancellationToken)
     {
-        await UniTask.Yield(cancellationToken);
-        
         if (terretControl == null)
         {
             terretControl = FindFirstObjectByType<TerretControl>();
             if (terretControl == null)
-            {
                 Debug.LogError("[InGameUIManager] TerretControl을 찾을 수 없습니다.");
-            }
         }
+        await UniTask.CompletedTask;
     }
 
     private async UniTask SetupEventSystemAsync(CancellationToken cancellationToken)
@@ -164,8 +148,8 @@ public class InGameUIManager : MonoBehaviour
 
     private async UniTask ValidateSystemsAsync(CancellationToken cancellationToken)
     {
-        await UniTask.Yield(cancellationToken);
         CheckLayerSetup();
+        await UniTask.CompletedTask;
     }
 
     #endregion
@@ -174,24 +158,18 @@ public class InGameUIManager : MonoBehaviour
 
     private async UniTask SetupEventTriggersAsync(CancellationToken cancellationToken)
     {
-        if (images?.Count == 0)
+        if (images == null || images.Count == 0)
         {
             Debug.LogWarning("[InGameUIManager] 드래그 가능한 이미지가 설정되지 않았습니다.");
             return;
         }
-
         for (int i = 0; i < images.Count; i++)
         {
             var image = images[i];
             if (image == null) continue;
-
             SetupImageEventTrigger(image, i);
-
-            // 프레임 분산 처리 - 성능 최적화
-            if (i % eventTriggerBatchSize == 0)
-            {
+            if (eventTriggerBatchSize > 0 && i % eventTriggerBatchSize == 0)
                 await UniTask.Yield(cancellationToken);
-            }
         }
     }
 
@@ -558,27 +536,27 @@ public class InGameUIManager : MonoBehaviour
 
     private async UniTask SubscribeToDataMangerEventsAsync(CancellationToken cancellationToken)
     {
-        await UniTask.Yield(cancellationToken);
-        
         if (!hasDataMangerEvents && DataManger.Instance != null)
         {
+            DataManger.Instance.OnCoinChanged -= UpdateCoinDisplay;
+            DataManger.Instance.OnTPChanged -= UpdateTpDisplay;
+            DataManger.Instance.OnWaterPointChanged -= UpdateWaterPointDisplay;
             DataManger.Instance.OnCoinChanged += UpdateCoinDisplay;
             DataManger.Instance.OnTPChanged += UpdateTpDisplay;
             DataManger.Instance.OnWaterPointChanged += UpdateWaterPointDisplay;
             hasDataMangerEvents = true;
         }
+        await UniTask.CompletedTask;
     }
 
     private async UniTask UpdateAllCurrencyDisplaysAsync(CancellationToken cancellationToken)
     {
-        await UniTask.Yield(cancellationToken);
-        
         var currencyInfo = DataManger.Instance.GetAllCurrencyInfo();
         lastCurrencyInfo = currencyInfo;
-        
         UpdateCoinDisplay(currencyInfo.coin);
         UpdateTpDisplay(currencyInfo.tp);
         UpdateWaterPointDisplay(currencyInfo.waterPoint);
+        await UniTask.CompletedTask;
     }
 
     private void SetDefaultCurrencyDisplay()
@@ -620,17 +598,13 @@ public class InGameUIManager : MonoBehaviour
     private async UniTask UpdateCurrencyDisplayAsync(CancellationToken cancellationToken)
     {
         if (!DataManger.IsAvailable()) return;
-
-        await UniTask.Yield(cancellationToken);
-
         var currencyInfo = DataManger.Instance.GetAllCurrencyInfo();
-
-        // 성능 최적화: 값이 변경된 경우에만 업데이트
         if (!CurrencyInfoEquals(currencyInfo, lastCurrencyInfo))
         {
             UpdateChangedCurrencyDisplays(currencyInfo);
             lastCurrencyInfo = currencyInfo;
         }
+        await UniTask.CompletedTask;
     }
 
     private bool CurrencyInfoEquals(DataManger.CurrencyInfo info1, DataManger.CurrencyInfo info2)
@@ -1057,11 +1031,8 @@ public class InGameUIManager : MonoBehaviour
     /// </summary>
     private void CleanupResources()
     {
-        // CancellationToken 정리
         cancellationTokenSource?.Cancel();
         cancellationTokenSource?.Dispose();
-
-        // 이벤트 구독 해제
         if (hasDataMangerEvents && DataManger.Instance != null)
         {
             DataManger.Instance.OnCoinChanged -= UpdateCoinDisplay;
@@ -1154,5 +1125,13 @@ public class InGameUIManager : MonoBehaviour
         color.a = 0f;
         waveText.color = color;
         waveText.gameObject.SetActive(false);
+    }
+
+    /// <summary>
+    /// 웨이브 종료 안내 텍스트를 페이드 인/아웃으로 표시
+    /// </summary>
+    public async UniTask ShowWaveEndTextAsync(string message = "웨이브 종료!", float fadeInTime = 0.5f, float displayTime = 1.5f, float fadeOutTime = 0.5f)
+    {
+        await ShowWaveTextAsync(message, fadeInTime, displayTime, fadeOutTime);
     }
 }

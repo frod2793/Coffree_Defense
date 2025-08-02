@@ -311,6 +311,12 @@ public class SpawnManager : MonoBehaviour
                 Debug.LogWarning("[SpawnManager] enemyPrefab이 null이어서 스폰을 건너뜁니다.");
                 continue;
             }
+            // 이미 Destroy된 프리팹이거나 유효하지 않은 경우 건너뜀
+            if (request.enemyPrefab == null || !request.enemyPrefab)
+            {
+                Debug.LogWarning("[SpawnManager] enemyPrefab이 Destroy되어 스폰을 건너뜁니다.");
+                continue;
+            }
             try
             {
                 await SpawnEnemyAsync(request, cancellationToken);

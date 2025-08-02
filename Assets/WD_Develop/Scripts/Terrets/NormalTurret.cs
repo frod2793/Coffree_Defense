@@ -54,7 +54,7 @@ public class NormalTurret : TurretBase
 
     protected override void Start()
     {
-        // TurretBase의 Start를 먼저 호출하여 기본 초기화 완료
+        // TurretBase의 Start를 먼저 호출하여 기본적인 초기화 완료
         base.Start();
         
         normalTurretCancellationTokenSource = new CancellationTokenSource();
@@ -76,7 +76,7 @@ public class NormalTurret : TurretBase
         if (!isNormalTurretInitialized || !ShouldUpdateNormalTurret()) return;
         
         // 터렛 헤드 회전 (매 프레임 필요)
-        UpdateTurretHeadRotation();
+        UpdateTurretHeadlocalRotation();
         
         // 발사 카운트다운 업데이트
         UpdateFireCountdown();
@@ -146,19 +146,20 @@ public class NormalTurret : TurretBase
                currentState != TerretState.Combining;
     }
 
-    private void UpdateTurretHeadRotation()
+    private void UpdateTurretHeadlocalRotation()
     {
         if (target == null || turretHead == null) return;
 
         Vector3 direction = target.position - transform.position;
         direction.y = 0; // Y축 회전만 허용 (수평 회전)
-        
-        if (direction.sqrMagnitude > 0.01f) // 최소 거리 체크로 성능 최적화
+
+        if (direction.sqrMagnitude > 0.01f)
         {
-            Quaternion lookRotation = Quaternion.LookRotation(direction);
-            turretHead.rotation = Quaternion.Slerp(
-                turretHead.rotation, 
-                lookRotation, 
+            float angleZ = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
+            Quaternion targetRotation = Quaternion.Euler(0, 0, angleZ);
+            turretHead.localRotation = Quaternion.Slerp(
+                turretHead.localRotation,
+                targetRotation,
                 Time.deltaTime * turnSpeed
             );
         }
@@ -306,7 +307,7 @@ public class NormalTurret : TurretBase
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"[{gameObject.name}] 발사 오류: {ex.Message}");
+           Debug.LogError($"[{gameObject.name}] 발사 오류: {ex.Message}");
         }
     }
 
@@ -321,7 +322,7 @@ public class NormalTurret : TurretBase
     private void ConfigureBullet(GameObject bulletGo)
     {
         bulletGo.transform.position = firePoint.position;
-        bulletGo.transform.rotation = firePoint.rotation;
+        bulletGo.transform.localRotation = firePoint.localRotation;
         
         Bullet bullet = bulletGo.GetComponent<Bullet>();
         if (bullet != null)

@@ -3,10 +3,11 @@ using Cysharp.Threading.Tasks;
 using System.Threading;
 using System;
 using System.Collections.Generic;
+using WD_Develop.Scripts;
 
 /// <summary>
 /// 게임의 핵심 루프를 관리하는 매니저
-/// 15초 준비 시간 → 웨이브 전투 → 결과 처리 → 다음 웨이브 준비의 사이클을 관리합니다.
+///  준비 시간 → 웨이브 전투 → 결과 처리 → 다음 웨이브 준비의 사이클을 관리합니다.
 /// </summary>
 public class GameManager : MonoBehaviour
 {
@@ -147,23 +148,23 @@ public class GameManager : MonoBehaviour
         try
         {
             await UniTask.Yield(cancellationToken);
-            
+
             // 게임 초기 설정
             currentWaveIndex = 0;
             enemiesKilled = 0;
             totalEnemiesInWave = 0;
-            
+
             // DataManger 확인 및 초기 TP 지급
             await SetupInitialResourcesAsync(cancellationToken);
-            
+
             // 웨이브 데이터 검증
             ValidateWaveData();
-            
+
             // 첫 번째 웨이브 준비 시작
             await StartPreparationPhaseAsync(cancellationToken);
-            
+
             isGameActive = true;
-            
+
             Debug.Log("[GameManager] 게임 초기화 완료");
         }
         catch (Exception ex)
@@ -275,7 +276,7 @@ public class GameManager : MonoBehaviour
         // 웨이브 안내 텍스트 표시
         if (uiManager != null)
         {
-            await uiManager.ShowWaveTextAsync($"Wave {CurrentWave} 시작!");
+            uiManager.ShowWaveTextAsync($"Wave {CurrentWave} 시작!"); // await 제거
         }
 
         // 현재 웨이브 데이터 가져오기
@@ -299,28 +300,38 @@ public class GameManager : MonoBehaviour
     private async UniTask CompleteWaveAsync(CancellationToken cancellationToken)
     {
         ChangeGameState(GameState.WaveComplete);
-        
         await UniTask.Yield(cancellationToken);
-        
+
+        // 웨이브 종료 안내 텍스트 표시
+        if (uiManager != null)
+        {
+            await uiManager.ShowWaveEndTextAsync();
+        }
+
         // 코인 보상 계산 및 지급
         int coinReward = CalculateCoinReward();
         if (DataManger.IsAvailable())
         {
             DataManger.Instance.AddCoin(coinReward);
         }
-        
+
         OnWaveCompleted?.Invoke(CurrentWave, coinReward);
         Debug.Log($"[GameManager] 웨이브 {CurrentWave} 완료! 코인 {coinReward} 획득");
-        
+
         // 다음 웨이브 준비 또는 게임 종료
         currentWaveIndex++;
-        
+
         if (currentWaveIndex >= totalWaves)
         {
             await EndGameAsync(true, cancellationToken);
         }
         else
         {
+            // 웨이브 종료 후 카운트다운 표시
+            if (uiManager != null)
+            {
+                await uiManager.ShowWaveCountdownAsync(uiManager.CountdownDuration, cancellationToken);
+            }
             await StartPreparationPhaseAsync(cancellationToken);
         }
     }
@@ -623,7 +634,7 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 수압프레스 사용 가능 여부를 확인합니다
+    /// 수압프레스를 사용 가능 여부를 확인합니다
     /// </summary>
     public bool CanUseHydroWaterPress()
     {

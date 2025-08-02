@@ -49,6 +49,9 @@ public class TurretLayerSetup : EditorWindow
         {
             if (turret.gameObject.layer != turretLayer)
             {
+                // HideFlags.DontSaveInEditor가 설정된 오브젝트는 건너뜀
+                if ((turret.gameObject.hideFlags & HideFlags.DontSaveInEditor) != 0)
+                    continue;
                 Undo.RecordObject(turret.gameObject, "Set Turret Layer");
                 turret.gameObject.layer = turretLayer;
                 count++;
@@ -56,6 +59,8 @@ public class TurretLayerSetup : EditorWindow
                 // 자식 오브젝트도 같은 레이어로 설정
                 foreach (Transform child in turret.transform)
                 {
+                    if ((child.gameObject.hideFlags & HideFlags.DontSaveInEditor) != 0)
+                        continue;
                     Undo.RecordObject(child.gameObject, "Set Turret Child Layer");
                     child.gameObject.layer = turretLayer;
                 }
@@ -65,4 +70,3 @@ public class TurretLayerSetup : EditorWindow
         EditorUtility.DisplayDialog("완료", $"{count}개의 터렛 레이어를 설정했습니다.", "확인");
     }
 }
-
