@@ -6,6 +6,8 @@ public class Bullet : MonoBehaviour
     private Transform target;
     private ObjectPool<GameObject> pool;
 
+    private bool isReleased = false;
+
     public float speed = 70f;
     public float damage = 10f; // 이 값은 터렛에서 설정해 줄 수 있습니다.
 
@@ -13,13 +15,24 @@ public class Bullet : MonoBehaviour
     {
         target = _target;
         pool = _pool;
+        isReleased = false;
+        // 일정 시간 후 자동 반환 (예: 5초)
+        AutoReleaseAfterDelay(5f).Forget();
+    }
+
+    private async Cysharp.Threading.Tasks.UniTaskVoid AutoReleaseAfterDelay(float delay)
+    {
+        await Cysharp.Threading.Tasks.UniTask.Delay((int)(delay * 1000));
+        if (!isReleased && gameObject.activeInHierarchy)
+        {
+            ReleaseBullet();
+        }
     }
 
     void Update()
     {
         if (target == null)
         {
-            // 목표물이 사라지면 풀로 반환
             ReleaseBullet();
             return;
         }
@@ -39,27 +52,30 @@ public class Bullet : MonoBehaviour
 
     void HitTarget()
     {
-        // 여기에 적에게 데미지를 주는 로직을 추가할 수 있습니다.
-        // if(target.TryGetComponent<Enemy>(out var enemy))
-        // {
-        //     enemy.TakeDamage(damage);
-        // }
-        Debug.Log(target.name + " 에게 " + damage + " 데미지!");
-        
+        if (target != null)
+        {
+            var enemy = target.GetComponent<EnemyAdvanced>();
+            if (enemy != null)
+            {
+                enemy.TakeDamage(damage);
+            }
+        }
+        Debug.Log(target != null ? target.name + " 에게 " + damage + " 데미지!" : "타겟 없음");
         ReleaseBullet();
     }
 
     private void ReleaseBullet()
     {
-        // 오브젝트가 활성화 상태이고, 풀이 존재할 때만 반환
+        if (isReleased) return;
+        isReleased = true;
         if (gameObject.activeInHierarchy && pool != null)
         {
             pool.Release(gameObject);
         }
-        else if (pool == null)
+        else
         {
-            // 풀이 없는 경우(예: 테스트용으로 씬에 직접 배치) 그냥 파괴
-            Destroy(gameObject);
+            // 풀 미지정 시 비활성화(씬에 남아도 GC 없음)
+            gameObject.SetActive(false);
         }
     }
 

@@ -26,6 +26,12 @@ public class UserCurrencyData : ScriptableObject
         private set => waterPoint = Mathf.Max(0, value); 
     }
 
+    private void OnEnable()
+    {
+        // HideFlags가 잘못 설정되는 것을 방지
+        this.hideFlags = HideFlags.None;
+    }
+
     // 코인 관련 메서드
     public bool CanAfford(int amount)
     {

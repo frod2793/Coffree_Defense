@@ -4,6 +4,8 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using Cysharp.Threading.Tasks;
 using System.Threading;
+using TMPro;
+using WD_Develop.Scripts;
 
 /// <summary>
 /// 인게임 UI 관리자 - UniTask 기반 비동기 처리로 최적화
@@ -41,21 +43,29 @@ public class InGameUIManager : MonoBehaviour
     [Header("In-Game UI Manager")]
     [SerializeField] private GameObject inGameUI;
     [SerializeField] private GameManager gameManager;
-    [SerializeField] private List<Image> images;
     [SerializeField] private Button addTurretButton;
-    [SerializeField] private List<GameObject> PrefabList;
 
+    
+    [Header("드래그 오브젝트")]
+    [SerializeField] private List<Image> images;
+    [SerializeField] private List<GameObject> PrefabList;
+    
+    [Header("게임진행 정보")]
+    [SerializeField] private TMP_Text waveText; // 현재 웨이브 표시용(효과용) 텍스트
+    [SerializeField] private TMP_Text nowWaveText; // 현재 진행 웨이브 상시 표시용 
+    [SerializeField] private TMP_Text enemyText; // 현재 남은 적 + 스폰예정적 / 웨이브 총 적
+    
     [Header("사용자 데이터")]
-    [SerializeField] private TMPro.TextMeshProUGUI coinText;
-    [SerializeField] private TMPro.TextMeshProUGUI tpText;
-    [SerializeField] private TMPro.TextMeshProUGUI waterPointText;
+    [SerializeField] private TextMeshProUGUI coinText;
+    [SerializeField] private TextMeshProUGUI tpText;
+    [SerializeField] private TextMeshProUGUI waterPointText;
 
     [Header("성능 설정")]
     [SerializeField] private float currencyUpdateInterval = 0.5f;
     [SerializeField] private int eventTriggerBatchSize = 5; // 이벤트 트리거 설정 시 프레임 분산 크기
 
     [Header("게임 상태")]
-    [SerializeField] private TMPro.TextMeshProUGUI GameCountDownText; // 게임 카운트다운 텍스트
+    [SerializeField] private TextMeshProUGUI GameCountDownText; // 게임 카운트다운 텍스트
     [SerializeField] private float countdownDuration = 10f; // 카운트다운 시간 (초)
     [SerializeField] private bool enableCountdown = true; // 카운트다운 활성화 여부
     
@@ -64,7 +74,7 @@ public class InGameUIManager : MonoBehaviour
     [SerializeField] private int waterPressCost = 10; // 워터 프레스 사용 비용 (워터포인트)
     [SerializeField] private int waterPressReward = 50; // 워터 프레스 사용시 코인 보상
     [SerializeField] private float waterPressCooldown = 5f; // 워터 프레스 쿨다운 시간 (초)
-    [SerializeField] private TMPro.TextMeshProUGUI waterPressCooldownText; // 쿨다운 표시 텍스트
+    [SerializeField] private TextMeshProUGUI waterPressCooldownText; // 쿨다운 표시 텍스트
     [SerializeField] private bool enableHydroPrefabSpawn = false; // 수압프레스 프리팹 스폰 활성화 여부
     
     // 워터 프레스 상태 관리
@@ -109,27 +119,13 @@ public class InGameUIManager : MonoBehaviour
     {
         try
         {
-            // 컴포넌트 찾기
             await FindRequiredComponentsAsync(cancellationToken);
-            
-            // 이벤트 시스템 설정
             await SetupEventSystemAsync(cancellationToken);
-            
-            // 시스템 검증
             await ValidateSystemsAsync(cancellationToken);
-            
-            // 재화 UI 초기화
             await InitializeCurrencyUIAsync(cancellationToken);
-            
-            // 게임 카운트다운 시작
             if (enableCountdown && GameCountDownText != null)
-            {
                 await StartGameCountdownAsync(cancellationToken);
-            }
-            
-            // 주기적 업데이트 시작
             StartPeriodicUpdateAsync(cancellationToken).Forget();
-            
             isInitialized = true;
             Debug.Log("[InGameUIManager] 초기화 완료");
         }
@@ -141,16 +137,13 @@ public class InGameUIManager : MonoBehaviour
 
     private async UniTask FindRequiredComponentsAsync(CancellationToken cancellationToken)
     {
-        await UniTask.Yield(cancellationToken);
-        
         if (terretControl == null)
         {
             terretControl = FindFirstObjectByType<TerretControl>();
             if (terretControl == null)
-            {
                 Debug.LogError("[InGameUIManager] TerretControl을 찾을 수 없습니다.");
-            }
         }
+        await UniTask.CompletedTask;
     }
 
     private async UniTask SetupEventSystemAsync(CancellationToken cancellationToken)
@@ -161,8 +154,8 @@ public class InGameUIManager : MonoBehaviour
 
     private async UniTask ValidateSystemsAsync(CancellationToken cancellationToken)
     {
-        await UniTask.Yield(cancellationToken);
         CheckLayerSetup();
+        await UniTask.CompletedTask;
     }
 
     #endregion
@@ -171,24 +164,18 @@ public class InGameUIManager : MonoBehaviour
 
     private async UniTask SetupEventTriggersAsync(CancellationToken cancellationToken)
     {
-        if (images?.Count == 0)
+        if (images == null || images.Count == 0)
         {
             Debug.LogWarning("[InGameUIManager] 드래그 가능한 이미지가 설정되지 않았습니다.");
             return;
         }
-
         for (int i = 0; i < images.Count; i++)
         {
             var image = images[i];
             if (image == null) continue;
-
             SetupImageEventTrigger(image, i);
-
-            // 프레임 분산 처리 - 성능 최적화
-            if (i % eventTriggerBatchSize == 0)
-            {
+            if (eventTriggerBatchSize > 0 && i % eventTriggerBatchSize == 0)
                 await UniTask.Yield(cancellationToken);
-            }
         }
     }
 
@@ -555,27 +542,27 @@ public class InGameUIManager : MonoBehaviour
 
     private async UniTask SubscribeToDataMangerEventsAsync(CancellationToken cancellationToken)
     {
-        await UniTask.Yield(cancellationToken);
-        
         if (!hasDataMangerEvents && DataManger.Instance != null)
         {
+            DataManger.Instance.OnCoinChanged -= UpdateCoinDisplay;
+            DataManger.Instance.OnTPChanged -= UpdateTpDisplay;
+            DataManger.Instance.OnWaterPointChanged -= UpdateWaterPointDisplay;
             DataManger.Instance.OnCoinChanged += UpdateCoinDisplay;
             DataManger.Instance.OnTPChanged += UpdateTpDisplay;
             DataManger.Instance.OnWaterPointChanged += UpdateWaterPointDisplay;
             hasDataMangerEvents = true;
         }
+        await UniTask.CompletedTask;
     }
 
     private async UniTask UpdateAllCurrencyDisplaysAsync(CancellationToken cancellationToken)
     {
-        await UniTask.Yield(cancellationToken);
-        
         var currencyInfo = DataManger.Instance.GetAllCurrencyInfo();
         lastCurrencyInfo = currencyInfo;
-        
         UpdateCoinDisplay(currencyInfo.coin);
         UpdateTpDisplay(currencyInfo.tp);
         UpdateWaterPointDisplay(currencyInfo.waterPoint);
+        await UniTask.CompletedTask;
     }
 
     private void SetDefaultCurrencyDisplay()
@@ -617,17 +604,13 @@ public class InGameUIManager : MonoBehaviour
     private async UniTask UpdateCurrencyDisplayAsync(CancellationToken cancellationToken)
     {
         if (!DataManger.IsAvailable()) return;
-
-        await UniTask.Yield(cancellationToken);
-
         var currencyInfo = DataManger.Instance.GetAllCurrencyInfo();
-
-        // 성능 최적화: 값이 변경된 경우에만 업데이트
         if (!CurrencyInfoEquals(currencyInfo, lastCurrencyInfo))
         {
             UpdateChangedCurrencyDisplays(currencyInfo);
             lastCurrencyInfo = currencyInfo;
         }
+        await UniTask.CompletedTask;
     }
 
     private bool CurrencyInfoEquals(DataManger.CurrencyInfo info1, DataManger.CurrencyInfo info2)
@@ -965,6 +948,62 @@ public class InGameUIManager : MonoBehaviour
 
     #endregion
 
+    #region 웨이브 카운트다운 시스템
+
+    /// <summary>
+    /// 웨이브 시작 전 카운트다운을 표시합니다.
+    /// </summary>
+    public async UniTask ShowWaveCountdownAsync(float duration, CancellationToken cancellationToken = default)
+    {
+        if (GameCountDownText == null) return;
+        float remainingTime = duration;
+        GameCountDownText.gameObject.SetActive(true);
+        GameCountDownText.transform.localScale = Vector3.one;
+
+        try
+        {
+            while (remainingTime > 0 && (this != null) && !cancellationToken.IsCancellationRequested)
+            {
+                int seconds = Mathf.CeilToInt(remainingTime);
+                if (seconds > 5)
+                {
+                    GameCountDownText.text = $"웨이브 시작까지\n{seconds}초";
+                    GameCountDownText.color = Color.black;
+                    GameCountDownText.transform.localScale = Vector3.one;
+                }
+                else if (seconds > 0)
+                {
+                    GameCountDownText.text = $"{seconds}";
+                    GameCountDownText.color = Color.blue;
+                    float scale = 1f + (6 - seconds) * 0.2f;
+                    GameCountDownText.transform.localScale = Vector3.one * scale;
+                }
+                else
+                {
+                    GameCountDownText.text = "WAVE!";
+                    GameCountDownText.color = Color.cyan;
+                    GameCountDownText.transform.localScale = Vector3.one * 1.5f;
+                }
+                await UniTask.Delay(1000, DelayType.DeltaTime, PlayerLoopTiming.Update, cancellationToken);
+                remainingTime -= 1f;
+            }
+            // "WAVE!" 메시지 잠시 표시
+            GameCountDownText.text = "WAVE!";
+            GameCountDownText.color = Color.cyan;
+            GameCountDownText.transform.localScale = Vector3.one * 1.5f;
+            await UniTask.Delay(1000, DelayType.DeltaTime, PlayerLoopTiming.Update, cancellationToken);
+        }
+        catch (System.OperationCanceledException) { }
+        finally
+        {
+            if (GameCountDownText != null && GameCountDownText.gameObject != null)
+                GameCountDownText.gameObject.SetActive(false);
+            GameCountDownText.transform.localScale = Vector3.one;
+        }
+    }
+
+    #endregion
+
     #region 시스템 검증
 
     /// <summary>
@@ -998,11 +1037,8 @@ public class InGameUIManager : MonoBehaviour
     /// </summary>
     private void CleanupResources()
     {
-        // CancellationToken 정리
         cancellationTokenSource?.Cancel();
         cancellationTokenSource?.Dispose();
-
-        // 이벤트 구독 해제
         if (hasDataMangerEvents && DataManger.Instance != null)
         {
             DataManger.Instance.OnCoinChanged -= UpdateCoinDisplay;
@@ -1053,6 +1089,89 @@ public class InGameUIManager : MonoBehaviour
     /// </summary>
     public float WaterPressCooldownTimer => waterPressCooldownTimer;
 
+
+    #endregion
+
+    /// <summary>
+    /// 웨이브 안내 텍스트를 페이드 인/아웃으로 표시
+    /// </summary>
+    public async UniTask ShowWaveTextAsync(string message, float fadeInTime = 0.5f, float displayTime = 1.5f, float fadeOutTime = 0.5f)
+    {
+        if (waveText == null) return;
+        var color = waveText.color;
+        color.a = 0f;
+        waveText.color = color;
+        waveText.text = message;
+        waveText.gameObject.SetActive(true);
+
+        // 페이드 인
+        float t = 0f;
+        while (t < fadeInTime)
+        {
+            t += Time.deltaTime;
+            color.a = Mathf.Lerp(0f, 1f, t / fadeInTime);
+            waveText.color = color;
+            await UniTask.Yield();
+        }
+        color.a = 1f;
+        waveText.color = color;
+
+        // 표시 유지
+        await UniTask.Delay((int)(displayTime * 1000));
+
+        // 페이드 아웃
+        t = 0f;
+        while (t < fadeOutTime)
+        {
+            t += Time.deltaTime;
+            color.a = Mathf.Lerp(1f, 0f, t / fadeOutTime);
+            waveText.color = color;
+            await UniTask.Yield();
+        }
+        color.a = 0f;
+        waveText.color = color;
+        waveText.gameObject.SetActive(false);
+    }
+
+    /// <summary>
+    /// 웨이브 종료 안내 텍스트를 페이드 인/아웃으로 표시
+    /// </summary>
+    public async UniTask ShowWaveEndTextAsync(string message = "웨이브 종료!", float fadeInTime = 0.5f, float displayTime = 1.5f, float fadeOutTime = 0.5f)
+    {
+        await ShowWaveTextAsync(message, fadeInTime, displayTime, fadeOutTime);
+    }
+    
+    #region 게임 진행 UI
+
+    /// <summary>
+    /// 현재 웨이브 정보를 UI에 업데이트합니다.
+    /// </summary>
+    public void UpdateWaveDisplay(int currentWave, int totalWaves)
+    {
+        if (nowWaveText != null)
+        {
+            nowWaveText.text = $"Wave {currentWave} / {totalWaves}";
+        }
+        else
+        {
+            Debug.LogWarning("[InGameUIManager] nowWaveText가 할당되지 않았습니다.");
+        }
+    }
+
+    /// <summary>
+    /// 현재 적 처치 정보를 UI에 업데이트합니다.
+    /// </summary>
+    public void UpdateEnemyCount(int killedCount, int totalInWave)
+    {
+        if (enemyText != null)
+        {
+            enemyText.text = $"Enemy: {killedCount} / {totalInWave}";
+        }
+        else
+        {
+            Debug.LogWarning("[InGameUIManager] enemyText가 할당되지 않았습니다.");
+        }
+    }
 
     #endregion
 }

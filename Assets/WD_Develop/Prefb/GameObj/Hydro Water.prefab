@@ -30,7 +30,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -0.3889, y: 1.9075, z: -14.6}
-  m_LocalScale: {x: 39.890938, y: 4.815, z: 1}
+  m_LocalScale: {x: 10, y: 4.815, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -125,7 +125,7 @@ MonoBehaviour:
   damage: 50
   knockbackForce: 10
   knockbackDuration: 0.8
-  lifeTime: 10
+  lifeTime: 5
   detectionRadius: 1.5
   hitEffect: {fileID: 0}
   destroyEffect: {fileID: 0}

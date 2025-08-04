@@ -14,4 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   baseTurretPrefab: {fileID: 6189269382025376730, guid: 7690a061904673545b6eb91d014e5fea, type: 3}
   requiredItemPrefab: {fileID: 6719897262539787490, guid: 2ec4b62f209005d4aa41e24de8bee184, type: 3}
-  resultTurretPrefab: {fileID: 471845348790075463, guid: 8a121a2140d3a4585b1b8c36e6437aeb, type: 3}
+  resultTurretPrefab: {fileID: 8567956659253494376, guid: 4157bfb434e7446f8a56db8483b32606, type: 3}

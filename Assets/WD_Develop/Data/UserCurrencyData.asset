@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bb959b2854ca4803b409d13e8c21a861, type: 3}
   m_Name: UserCurrencyData
   m_EditorClassIdentifier: 
-  coin: 380
-  tp: 110
-  waterPoint: 330
+  coin: 15355
+  tp: 642
+  waterPoint: 160

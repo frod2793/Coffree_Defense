@@ -11,8 +11,8 @@ GameObject:
   - component: {fileID: 1093165704590219253}
   - component: {fileID: 2856828700597650295}
   - component: {fileID: 8726263663871068344}
-  - component: {fileID: 86340742768610584}
   - component: {fileID: 7196940185542182769}
+  - component: {fileID: 1673235286749247728}
   m_Layer: 0
   m_Name: Bullet
   m_TagString: Untagged
@@ -29,9 +29,9 @@ Transform:
   m_GameObject: {fileID: 9185332407487830785}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 8.15, y: 0.82, z: 0}
-  m_LocalScale: {x: 0.26638, y: 0.26638, z: 0.26638}
-  m_ConstrainProportionsScale: 0
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -42,7 +42,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 9185332407487830785}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: 4924514411862935894, guid: 0a3f3da032aa548fe9a64b3d832d9920, type: 3}
 --- !u!23 &8726263663871068344
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -88,7 +88,21 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!65 &86340742768610584
+--- !u!114 &7196940185542182769
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9185332407487830785}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dcc996735edb4e7fab0cfb42f558777b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  speed: 10
+  damage: 10
+--- !u!65 &1673235286749247728
 BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -107,19 +121,5 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &7196940185542182769
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9185332407487830785}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dcc996735edb4e7fab0cfb42f558777b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  speed: 70
-  damage: 10
+  m_Size: {x: 0.2066518, y: 0.11403402, z: 0.13437138}
+  m_Center: {x: 0, y: 0, z: -0.00000000372529}

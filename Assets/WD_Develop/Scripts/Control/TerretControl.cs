@@ -27,12 +27,19 @@ public class TerretControl : MonoBehaviour
     [SerializeField]
     private GameObject turretBonePrefab; // 뼈대 터렛 프리팹 (조합의 기본 형태)
     
+    [Header("터렛 생성 설정")]
+    [SerializeField]
+    private Transform turretSpawnPoint; // 터렛이 생성될 위치
+    
     [Header("조합 데이터")]
     [SerializeField] private TurretCombinationData combinationData; // 조합법 데이터
     private TurretBase highlightedTurret; // 현재 하이라이트된 터렛
     private GameObject draggedItem; // 현재 드래그 중인 아이템의 프리팹 미리보기
     private GameObject selectedItemPrefab; // 현재 선택된 원본 아이템 프리팹
     private bool isDraggingItem = false; // 아이템을 드래그 중인지 여부
+
+    [Header("조합 포탑 스폰 설정")]
+    [SerializeField] private float combinedTurretSpawnHeight = 0.5f; // 조합된 포탑의 스폰 높이
 
     // UniTask 관련
     private CancellationTokenSource cancellationTokenSource;
@@ -73,24 +80,30 @@ public class TerretControl : MonoBehaviour
         isGroundPlaneInitialized = true;
     }
 
-    public async UniTask SetAddTurretAsync(CancellationToken cancellationToken = default)
+    private async UniTask SetAddTurretAsync(CancellationToken cancellationToken = default)
     {
         if (turretBonePrefab == null)
         {
             Debug.LogError("TurretBonePrefab이 설정되지 않았습니다! Inspector에서 할당해주세요.");
             return;
         }
+
+        if (turretSpawnPoint == null)
+        {
+            Debug.LogError("turretSpawnPoint가 설정되지 않았습니다! Inspector에서 할당해주세요.");
+            return;
+        }
         
         // 터렛 생성을 다음 프레임으로 분산
         await UniTask.Yield(cancellationToken);
         
-        // 뼈대 터렛 프리팹을 바닥에 배치
-        GameObject newTurret = Instantiate(turretBonePrefab, new Vector3(0, 1, 0), Quaternion.identity);
+        // 지정된 스폰 위치에 뼈대 터렛 프리팹을 배치
+        GameObject newTurret = Instantiate(turretBonePrefab, turretSpawnPoint.position, turretSpawnPoint.rotation);
         
         // 터렛 레이어 설정을 비동기로 처리
         await SetTurretLayerAsync(newTurret, cancellationToken);
         
-        Debug.Log($"뼈대 터렛 배치 완료: {newTurret.name}");
+        Debug.Log($"뼈대 터렛 배치 완료: {newTurret.name} at {turretSpawnPoint.position}");
     }
 
     public void SetAddTurret()
@@ -439,14 +452,13 @@ public class TerretControl : MonoBehaviour
             // 기존 터렛의 위치와 회전 저장
             Vector3 turretPosition = highlightedTurret.transform.position;
             Quaternion turretRotation = highlightedTurret.transform.rotation;
-            
+            // 스폰 높이 적용
+            turretPosition.y = combinedTurretSpawnHeight;
             // 기존 터렛을 먼저 안전하게 파괴
             await SafelyDestroyTurretAsync(highlightedTurret, cancellationToken);
             highlightedTurret = null;
-            
             // 조합 처리를 다음 프레임으로 분산
             await UniTask.Yield(cancellationToken);
-            
             // 새 터렛 생성
             GameObject newTurretObj = Instantiate(resultPrefab.gameObject, turretPosition, turretRotation);
             TurretBase newTurretBase = newTurretObj.GetComponent<TurretBase>();
@@ -698,10 +710,10 @@ public class TerretControl : MonoBehaviour
     {
         // 조합 성공 이펙트 구현 (파티클, 사운드 등)
         Debug.Log("조합 성공 이펙트 재생");
-        
+
         // 이펙트 처리를 다음 프레임으로 분산
         await UniTask.Yield(cancellationToken);
-        
+
         // 예시: 파티클 시스템 생성 및 재생
         // GameObject effect = Instantiate(combinationSuccessEffectPrefab, position, Quaternion.identity);
         // Destroy(effect, 2f); // 2초 후 이펙트 제거
@@ -715,7 +727,7 @@ public class TerretControl : MonoBehaviour
         // 동기 버전 유지 (하위 호환성)
         PlayCombinationSuccessEffectAsync(position, cancellationTokenSource.Token).Forget();
     }
-    
+
     /// <summary>
     /// 조합 실패 이펙트를 재생합니다. (비동기 버전)
     /// </summary>
@@ -723,10 +735,10 @@ public class TerretControl : MonoBehaviour
     {
         // 조합 실패 이펙트 구현 (파티클, 사운드 등)
         Debug.Log("조합 실패 이펙트 재생");
-        
+
         // 이펙트 처리를 다음 프레임으로 분산
         await UniTask.Yield(cancellationToken);
-        
+
         // 예시: 파티클 시스템 생성 및 재생
         // GameObject effect = Instantiate(combinationFailEffectPrefab, position, Quaternion.identity);
         // Destroy(effect, 1.5f); // 1.5초 후 이펙트 제거
@@ -740,10 +752,16 @@ public class TerretControl : MonoBehaviour
         // 동기 버전 유지 (하위 호환성)
         PlayCombinationFailEffectAsync(position, cancellationTokenSource.Token).Forget();
     }
-    
+
 
     private void OnDestroy()
     {
+        // 드래그 중인 아이템이 남아있다면 파괴
+        if (draggedItem != null)
+        {
+            Destroy(draggedItem);
+        }
+
         // CancellationToken 정리
         cancellationTokenSource?.Cancel();
         cancellationTokenSource?.Dispose();
