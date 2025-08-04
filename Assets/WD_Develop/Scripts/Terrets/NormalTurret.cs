@@ -286,40 +286,68 @@ public class NormalTurret : TurretBase
     #region 발사 시스템
 
     /// <summary>
-    /// 비동기 발사 메서드
+    /// 비동기 발사 메서드. 경쟁 상태(Race Condition)를 방지하기 위해 타겟을 지역 변수로 캡처합니다.
     /// </summary>
     private async UniTask ShootAsync(CancellationToken cancellationToken)
     {
-        if (!CanShoot()) return;
+        // 발사를 결정한 시점의 타겟을 지역 변수에 저장합니다.
+        Transform shotTarget = target;
+
+        // 이 타겟을 기준으로 발사 가능 여부를 판단합니다.
+        if (!CanShoot(shotTarget)) return;
 
         try
         {
-            // 총알 생성을 다음 프레임으로 분산
+            // 실제 발사 로직을 다음 프레임으로 넘겨 부하를 분산시킵니다.
             await UniTask.Yield(cancellationToken);
             
+            // Yield 이후, 발사 직전에 타겟이 여전히 유효한지(파괴되지 않았는지) 다시 한번 확인합니다.
+            // Unity의 '==' 오버로드는 객체가 파괴되었는지 확인해주므로 null 체크만으로 충분합니다.
+            if (shotTarget == null)
+            {
+                return; // 타겟이 그 사이에 사라졌다면 발사를 취소합니다.
+            }
+
             // 오브젝트 풀에서 총알을 가져옵니다.
             GameObject bulletGo = bulletPool.Get();
             if (bulletGo == null) return;
 
-            ConfigureBullet(bulletGo);
+            // 발사 시점에 캡처해둔 타겟으로 총알을 설정합니다.
+            ConfigureBullet(bulletGo, shotTarget);
             
-            Debug.Log($"[{gameObject.name}] 발사! 타겟: {target.name}");
+            // Debug.Log($"[{gameObject.name}] 발사! 타겟: {shotTarget.name}");
         }
         catch (System.Exception ex)
         {
-           Debug.LogError($"[{gameObject.name}] 발사 오류: {ex.Message}");
+           // 발사 과정에서 타겟이 파괴되는 등의 예외가 발생할 수 있습니다.
+           // 특히 MissingReferenceException은 타겟이 파괴되었을 때 발생할 수 있는 예상된 예외입니다.
+           if (ex is MissingReferenceException)
+           {
+               // 타겟이 발사 직전에 파괴된 경우, 정상적인 게임 상황으로 간주하고 오류 로그 대신 경고나 일반 로그를 남기거나 무시할 수 있습니다.
+               // Debug.LogWarning($"[{gameObject.name}] 발사 시도 중 타겟이 사라졌습니다 (정상 처리).");
+           }
+           else
+           {
+               Debug.LogError($"[{gameObject.name}] 발사 오류: {ex.Message}");
+           }
         }
     }
 
-    private bool CanShoot()
+    /// <summary>
+    /// 발사 가능 여부를 확인합니다. 명확성을 위해 타겟을 인자로 받습니다.
+    /// </summary>
+    private bool CanShoot(Transform currentTarget)
     {
         return bulletPrefab != null && 
                firePoint != null && 
-               target != null && 
+               currentTarget != null && // 매개변수로 받은 타겟의 유효성을 검사합니다.
                currentState == TerretState.Active;
     }
 
-    private void ConfigureBullet(GameObject bulletGo)
+    /// <summary>
+    /// 총알의 초기 상태를 설정합니다. 타겟을 인자로 받아 정확한 대상을 조준합니다.
+    /// </summary>
+    private void ConfigureBullet(GameObject bulletGo, Transform bulletTarget)
     {
         bulletGo.transform.position = firePoint.position;
         bulletGo.transform.localRotation = firePoint.localRotation;
@@ -327,7 +355,8 @@ public class NormalTurret : TurretBase
         Bullet bullet = bulletGo.GetComponent<Bullet>();
         if (bullet != null)
         {
-            bullet.Seek(target, bulletPool);
+            // 멤버 변수 'target' 대신, 발사 시점에 확정된 'bulletTarget'을 전달합니다.
+            bullet.Seek(bulletTarget, bulletPool);
         }
     }
 

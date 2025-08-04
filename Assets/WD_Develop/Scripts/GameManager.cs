@@ -154,6 +154,12 @@ public class GameManager : MonoBehaviour
             enemiesKilled = 0;
             totalEnemiesInWave = 0;
 
+            // 이벤트 구독
+            if (spawnManager != null)
+            {
+                SpawnManager.OnEnemyDestroyed += OnEnemyKilledHandler;
+            }
+
             // DataManger 확인 및 초기 TP 지급
             await SetupInitialResourcesAsync(cancellationToken);
 
@@ -208,12 +214,7 @@ public class GameManager : MonoBehaviour
             case GameState.Preparing:
                 UpdatePreparationPhase();
                 break;
-            case GameState.Fighting:
-                UpdateFightingPhase();
-                break;
-            case GameState.WaveComplete:
-                // 비동기로 처리되므로 여기서는 별도 처리 없음
-                break;
+            // Fighting 및 WaveComplete 상태는 이벤트 기반으로 처리되므로 Update에서 제외
         }
     }
 
@@ -227,19 +228,7 @@ public class GameManager : MonoBehaviour
             StartWaveAsync(cancellationTokenSource.Token).Forget();
         }
     }
-
-    private void UpdateFightingPhase()
-    {
-        // 현재 적의 수 확인
-        CleanupDestroyedEnemies();
-        
-        // 모든 적이 처치되었는지 확인
-        if (totalEnemiesInWave > 0 && enemiesKilled >= totalEnemiesInWave)
-        {
-            CompleteWaveAsync(cancellationTokenSource.Token).Forget();
-        }
-    }
-
+    
     #endregion
 
     #region 웨이브 관리
@@ -249,20 +238,28 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private async UniTask StartPreparationPhaseAsync(CancellationToken cancellationToken)
     {
-        ChangeGameState(GameState.Preparing);
-        preparationTimer = preparationTime;
-        
-        await UniTask.Yield(cancellationToken);
-        
-        // 웨이브 시작 시 TP 지급 (첫 웨이브 제외)
-        if (currentWaveIndex > 0 && DataManger.IsAvailable())
+        // 첫 웨이브가 아닐 경우, 준비 시간 없이 바로 다음 웨이브 시작
+        if (currentWaveIndex > 0)
         {
-            int tpToGive = initialTPPerWave + (currentWaveIndex * TP_INCREMENT_PER_WAVE);
-            DataManger.Instance.AddTP(tpToGive);
-            Debug.Log($"[GameManager] 웨이브 {CurrentWave} 준비: TP {tpToGive} 지급");
+            // TP 지급
+            if (DataManger.IsAvailable())
+            {
+                int tpToGive = initialTPPerWave + (currentWaveIndex * TP_INCREMENT_PER_WAVE);
+                DataManger.Instance.AddTP(tpToGive);
+                Debug.Log($"[GameManager] 웨이브 {CurrentWave} 준비: TP {tpToGive} 지급");
+            }
+
+            Debug.Log($"[GameManager] 웨이브 {CurrentWave} 즉시 시작");
+            await StartWaveAsync(cancellationToken); // 준비 시간 없이 바로 웨이브 시작
         }
-        
-        Debug.Log($"[GameManager] 웨이브 {CurrentWave} 준비 시작 ({preparationTime}초)");
+        else
+        {
+            // 첫 웨이브일 경우에만 준비 시간 적용
+            ChangeGameState(GameState.Preparing);
+            preparationTimer = preparationTime;
+            await UniTask.Yield(cancellationToken);
+            Debug.Log($"[GameManager] 웨이브 {CurrentWave} 준비 시작 ({preparationTime}초)");
+        }
     }
 
     /// <summary>
@@ -276,7 +273,8 @@ public class GameManager : MonoBehaviour
         // 웨이브 안내 텍스트 표시
         if (uiManager != null)
         {
-            uiManager.ShowWaveTextAsync($"Wave {CurrentWave} 시작!"); // await 제거
+            uiManager.ShowWaveTextAsync($"Wave {CurrentWave} 시작!").Forget();
+            uiManager.UpdateWaveDisplay(CurrentWave, totalWaves);
         }
 
         // 현재 웨이브 데이터 가져오기
@@ -287,7 +285,7 @@ public class GameManager : MonoBehaviour
         }
         else
         {
-            Debug.LogError($"[GameManager] 웨이브 {CurrentWave} 데이터를 찾을 수 없습니다!");
+            Debug.LogError($"[GameManager] 웨이브 {CurrentWave} 데이터를 찾을 수 없습니다! 다음 웨이브를 진행합니다.");
             await CompleteWaveAsync(cancellationToken);
         }
         OnWaveStarted?.Invoke(CurrentWave);
@@ -299,6 +297,9 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private async UniTask CompleteWaveAsync(CancellationToken cancellationToken)
     {
+        // 상태가 이미 WaveComplete이면 중복 실행 방지
+        if (currentState == GameState.WaveComplete) return;
+        
         ChangeGameState(GameState.WaveComplete);
         await UniTask.Yield(cancellationToken);
 
@@ -346,22 +347,21 @@ public class GameManager : MonoBehaviour
     private async UniTask SpawnWaveEnemiesAsync(WaveData waveData, CancellationToken cancellationToken)
     {
         enemiesKilled = 0;
-        totalEnemiesInWave = 0;
+        // 웨이브 시작 전에 총 적 수를 미리 계산합니다.
+        totalEnemiesInWave = CalculateTotalEnemiesInWave(waveData);
         
-        Debug.Log($"[GameManager] 웨이브 시작 - SpawnManager를 통해 적 스폰 시작");
+        Debug.Log($"[GameManager] 웨이브 시작 - 총 {totalEnemiesInWave}마리의 적 스폰 예정");
+
+        if (uiManager != null)
+        {
+            uiManager.UpdateEnemyCount(enemiesKilled, totalEnemiesInWave);
+        }
         
         if (spawnManager != null)
         {
-            // SpawnManager 이벤트 구독
-            SpawnManager.OnEnemyDestroyed += OnEnemyKilledHandler;
-            
             // SpawnManager에게 웨이브 스폰 요청
             await spawnManager.SpawnWaveAsync(waveData, cancellationToken);
-            
-            // SpawnManager에서 총 스폰된 적들의 정보를 가져와서 GameManager에서 추적
-            totalEnemiesInWave = spawnManager.TotalEnemiesSpawned;
-            
-            Debug.Log($"[GameManager] SpawnManager를 통해 총 {totalEnemiesInWave}마리의 적 스폰 완료");
+            Debug.Log($"[GameManager] SpawnManager의 스폰 요청 완료.");
         }
         else
         {
@@ -371,25 +371,37 @@ public class GameManager : MonoBehaviour
 
     private void OnEnemyKilledHandler(GameObject enemy)
     {
+        // 전투 상태가 아니면 아무것도 하지 않음 (중복 처리 방지)
+        if (currentState != GameState.Fighting) return;
+
         enemiesKilled++;
         OnEnemyKilled?.Invoke(enemiesKilled, totalEnemiesInWave);
+        
+        if (uiManager != null)
+        {
+            uiManager.UpdateEnemyCount(enemiesKilled, totalEnemiesInWave);
+        }
         
         Debug.Log($"[GameManager] 적 처치: {enemiesKilled}/{totalEnemiesInWave}");
         
         // 모든 적이 처치되었는지 확인
         if (enemiesKilled >= totalEnemiesInWave && totalEnemiesInWave > 0)
         {
-            // SpawnManager 이벤트 구독 해제
-            SpawnManager.OnEnemyDestroyed -= OnEnemyKilledHandler;
-            
             // 웨이브 완료 처리
             CompleteWaveAsync(cancellationTokenSource.Token).Forget();
         }
     }
 
-    private void CleanupDestroyedEnemies()
+    private int CalculateTotalEnemiesInWave(WaveData waveData)
     {
-        // SpawnManager에서 관리하므로 여기서는 처리하지 않음
+        if (waveData == null) return 0;
+
+        int totalEnemies = 0;
+        foreach (var group in waveData.enemyGroups)
+        {
+            totalEnemies += group.count;
+        }
+        return totalEnemies;
     }
 
     #endregion
@@ -729,6 +741,11 @@ public class GameManager : MonoBehaviour
     {
         CleanupCurrentGame();
         
+        if (spawnManager != null)
+        {
+            SpawnManager.OnEnemyDestroyed -= OnEnemyKilledHandler;
+        }
+        
         cancellationTokenSource?.Cancel();
         cancellationTokenSource?.Dispose();
         
@@ -737,29 +754,3 @@ public class GameManager : MonoBehaviour
 
     #endregion
 }
-
-#region 웨이브 데이터 구조
-
-/// <summary>
-/// 웨이브 정보를 저장하는 데이터 클래스
-/// </summary>
-[System.Serializable]
-public class WaveData
-{
-    public int waveNumber;
-    public Vector3 spawnPoint;
-    public List<EnemyGroup> enemyGroups = new List<EnemyGroup>();
-}
-
-/// <summary>
-/// 적 그룹 정보를 저장하는 데이터 클래스
-/// </summary>
-[System.Serializable]
-public class EnemyGroup
-{
-    public GameObject enemyPrefab;
-    public int count;
-    public float spawnInterval;
-}
-
-#endregion

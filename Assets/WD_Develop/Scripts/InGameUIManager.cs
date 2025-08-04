@@ -43,16 +43,23 @@ public class InGameUIManager : MonoBehaviour
     [Header("In-Game UI Manager")]
     [SerializeField] private GameObject inGameUI;
     [SerializeField] private GameManager gameManager;
-    [SerializeField] private List<Image> images;
+
     [SerializeField] private Button addTurretButton;
+
+    
+    [Header("드래그 오브젝트")]
+    [SerializeField] private List<Image> images;
     [SerializeField] private List<GameObject> PrefabList;
     
-    [SerializeField] private TMP_Text waveText; // 현재 웨이브 표시용 텍스트
-
+    [Header("게임진행 정보")]
+    [SerializeField] private TMP_Text waveText; // 현재 웨이브 표시용(효과용) 텍스트
+    [SerializeField] private TMP_Text nowWaveText; // 현재 진행 웨이브 상시 표시용 
+    [SerializeField] private TMP_Text enemyText; // 현재 남은 적 + 스폰예정적 / 웨이브 총 적
+    
     [Header("사용자 데이터")]
-    [SerializeField] private TMPro.TextMeshProUGUI coinText;
-    [SerializeField] private TMPro.TextMeshProUGUI tpText;
-    [SerializeField] private TMPro.TextMeshProUGUI waterPointText;
+    [SerializeField] private TextMeshProUGUI coinText;
+    [SerializeField] private TextMeshProUGUI tpText;
+    [SerializeField] private TextMeshProUGUI waterPointText;
 
     [Header("성능 설정")]
     [SerializeField] private float currencyUpdateInterval = 0.5f;
@@ -1134,4 +1141,38 @@ public class InGameUIManager : MonoBehaviour
     {
         await ShowWaveTextAsync(message, fadeInTime, displayTime, fadeOutTime);
     }
+    
+    #region 게임 진행 UI
+
+    /// <summary>
+    /// 현재 웨이브 정보를 UI에 업데이트합니다.
+    /// </summary>
+    public void UpdateWaveDisplay(int currentWave, int totalWaves)
+    {
+        if (nowWaveText != null)
+        {
+            nowWaveText.text = $"Wave {currentWave} / {totalWaves}";
+        }
+        else
+        {
+            Debug.LogWarning("[InGameUIManager] nowWaveText가 할당되지 않았습니다.");
+        }
+    }
+
+    /// <summary>
+    /// 현재 적 처치 정보를 UI에 업데이트합니다.
+    /// </summary>
+    public void UpdateEnemyCount(int killedCount, int totalInWave)
+    {
+        if (enemyText != null)
+        {
+            enemyText.text = $"Enemy: {killedCount} / {totalInWave}";
+        }
+        else
+        {
+            Debug.LogWarning("[InGameUIManager] enemyText가 할당되지 않았습니다.");
+        }
+    }
+
+    #endregion
 }

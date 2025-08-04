@@ -36,7 +36,6 @@ public class SpawnManager : MonoBehaviour
     [Header("스폰 설정")]
     [SerializeField] private Vector3 spawnAreaMin = new Vector3(-5, 0, -5);
     [SerializeField] private Vector3 spawnAreaMax = new Vector3(5, 0, 5);
-    // [SerializeField] private List<Transform> spawnPoints = new List<Transform>(); // 기존 스폰포인트 비활성화
     [SerializeField] private Transform enemyParent; // 적들의 부모 오브젝트
     
     [Header("오브젝트 풀 설정")]
@@ -56,6 +55,11 @@ public class SpawnManager : MonoBehaviour
     // 스폰 상태
     public SpawnState currentState { get; private set; }
     private bool isSpawning;
+    private int _activeEnqueueTasks = 0;
+    
+    // 웨이브 진행 상태 추적
+    private bool _allEnemiesInQueue;
+    private bool _allEnemiesSpawned;
     
     // 오브젝트 풀
     private Dictionary<string, ObjectPool<GameObject>> enemyPools = new Dictionary<string, ObjectPool<GameObject>>();
@@ -72,8 +76,8 @@ public class SpawnManager : MonoBehaviour
     public static event Action<GameObject> OnEnemySpawned;
     public static event Action<GameObject> OnEnemyDestroyed;
     public static event Action<GameObject, Vector3> OnItemDropped;
-    public static event Action OnAllEnemiesSpawned;
-    public static event Action OnAllEnemiesCleared;
+    public static event Action OnAllEnemiesSpawned; // 모든 적이 '필드에 생성'되었을 때 호출
+    public static event Action OnAllEnemiesCleared;  // 모든 적이 '처치'되었을 때 호출
     
     // GameManager와의 연동을 위한 이벤트
     public static event Action<int, int> OnEnemyKilledUpdate; // (처치된 적 수, 전체 적 수)
@@ -82,7 +86,6 @@ public class SpawnManager : MonoBehaviour
     public int ActiveEnemyCount => activeEnemies.Count;
     public bool IsSpawning => isSpawning;
     public int QueuedSpawnCount => spawnQueue.Count;
-    public int TotalEnemiesSpawned { get; private set; } // 총 스폰된 적 수 추적
 
     #endregion
 
@@ -208,73 +211,104 @@ public class SpawnManager : MonoBehaviour
     #region 스폰 시스템
 
     /// <summary>
-    /// 웨이브 데이터를 기반으로 적들을 스폰합니다.
+    /// 웨이브 데이터를 기반으로 적 스폰 절차를 시작합니다.
     /// </summary>
-    public async UniTask SpawnWaveAsync(WaveData waveData, CancellationToken cancellationToken = default)
+    public UniTask SpawnWaveAsync(WaveData waveData, CancellationToken cancellationToken = default)
     {
         if (waveData == null || isSpawning)
         {
             Debug.LogWarning("[SpawnManager] 이미 스폰 중이거나 웨이브 데이터가 없습니다.");
-            return;
+            return UniTask.CompletedTask;
         }
 
+        // 새 웨이브를 위해 상태 초기화
+        _allEnemiesInQueue = false;
+        _allEnemiesSpawned = false;
+
+        ManageWaveSpawningAsync(waveData, cancellationToken).Forget();
+        return UniTask.CompletedTask;
+    }
+
+    /// <summary>
+    /// 웨이브 스폰의 '계획' 단계. 모든 적을 스폰 큐에 추가합니다.
+    /// </summary>
+    private async UniTaskVoid ManageWaveSpawningAsync(WaveData waveData, CancellationToken cancellationToken)
+    {
         currentState = SpawnState.Spawning;
         isSpawning = true;
-        
-        // 웨이브 시작 시 총 스폰된 적 수 초기화
-        TotalEnemiesSpawned = 0;
-        
+
         try
         {
-            await ProcessWaveSpawnAsync(waveData, cancellationToken);
-            
-            currentState = SpawnState.Complete;
-            OnAllEnemiesSpawned?.Invoke();
-            
-            Debug.Log($"[SpawnManager] SpawnManager를 통해 총 {TotalEnemiesSpawned}마리의 적 스폰 완료");
+            if (waveData.enemyGroups.Count == 0)
+            {
+                Debug.LogWarning("[SpawnManager] 웨이브에 적 그룹이 없습니다. 즉시 완료 처리합니다.");
+                _allEnemiesInQueue = true;
+                return;
+            }
+
+            _activeEnqueueTasks = waveData.enemyGroups.Count;
+
+            foreach (var enemyGroup in waveData.enemyGroups)
+            {
+                SpawnEnemyGroupLoopAsync(enemyGroup, waveData.spawnPoint, cancellationToken).Forget();
+            }
+
+            await UniTask.WaitUntil(() => _activeEnqueueTasks == 0, cancellationToken: cancellationToken);
+
+            _allEnemiesInQueue = true;
+            Debug.Log("[SpawnManager] 모든 적 스폰 요청이 큐에 추가되었습니다.");
+        }
+        catch (OperationCanceledException)
+        {
+            Debug.Log("[SpawnManager] 웨이브 스폰이 취소되었습니다.");
+            isSpawning = false;
         }
         catch (Exception ex)
         {
-            Debug.LogError($"[SpawnManager] 웨이브 스폰 오류: {ex.Message}");
-        }
-        finally
-        {
+            Debug.LogError($"[SpawnManager] 웨이브 스폰 관리 중 오류 발생: {ex.Message}");
             isSpawning = false;
         }
     }
 
-    private async UniTask ProcessWaveSpawnAsync(WaveData waveData, CancellationToken cancellationToken)
+    /// <summary>
+    /// 단일 적 그룹의 모든 적을 스폰 큐에 추가하는 백그라운드 루프입니다.
+    /// </summary>
+    private async UniTaskVoid SpawnEnemyGroupLoopAsync(EnemyGroup enemyGroup, Vector3 baseSpawnPoint, CancellationToken cancellationToken)
     {
-        foreach (var enemyGroup in waveData.enemyGroups)
+        try
         {
-            await SpawnEnemyGroupAsync(enemyGroup, waveData.spawnPoint, cancellationToken);
-        }
-    }
+            for (int i = 0; i < enemyGroup.count; i++)
+            {
+                if (cancellationToken.IsCancellationRequested) return;
 
-    private async UniTask SpawnEnemyGroupAsync(EnemyGroup enemyGroup, Vector3 baseSpawnPoint, CancellationToken cancellationToken)
-    {
-        for (int i = 0; i < enemyGroup.count; i++)
-        {
-            // 스폰 요청을 큐에 추가
-            var spawnRequest = new SpawnRequest
-            {
-                enemyPrefab = enemyGroup.enemyPrefab,
-                spawnPosition = GetRandomSpawnPosition(baseSpawnPoint),
-                spawnDelay = enemyGroup.spawnInterval
-            };
-            
-            spawnQueue.Enqueue(spawnRequest);
-            
-            if (enemyGroup.spawnInterval > 0)
-            {
-                await UniTask.Delay((int)(enemyGroup.spawnInterval * 1000), 
-                    DelayType.DeltaTime, PlayerLoopTiming.Update, cancellationToken);
+                var spawnRequest = new SpawnRequest
+                {
+                    enemyPrefab = enemyGroup.enemyPrefab,
+                    spawnPosition = GetRandomSpawnPosition(baseSpawnPoint),
+                    spawnDelay = enemyGroup.spawnInterval
+                };
+
+                spawnQueue.Enqueue(spawnRequest);
+
+                if (enemyGroup.spawnInterval > 0)
+                {
+                    await UniTask.Delay(TimeSpan.FromSeconds(enemyGroup.spawnInterval), cancellationToken: cancellationToken);
+                }
             }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[SpawnManager] 적 그룹 스폰 루프 오류: {ex.Message}");
+        }
+        finally
+        {
+            System.Threading.Interlocked.Decrement(ref _activeEnqueueTasks);
         }
     }
 
     /// <summary>
-    /// 스폰 큐를 처리하는 비동기 루프
+    /// 스폰 큐를 처리하여 실제로 적을 필드에 생성하는 '실행' 루프
     /// </summary>
     private async UniTask StartSpawnProcessingAsync(CancellationToken cancellationToken)
     {
@@ -283,9 +317,22 @@ public class SpawnManager : MonoBehaviour
             try
             {
                 await ProcessSpawnQueueAsync(cancellationToken);
+
+                // '계획'이 끝나고 '실행'도 끝났는지 확인
+                if (isSpawning && _allEnemiesInQueue && spawnQueue.Count == 0)
+                {
+                    // 한 웨이브 당 한 번만 실행되도록 보장
+                    if (!_allEnemiesSpawned)
+                    {
+                        _allEnemiesSpawned = true;
+                        isSpawning = false; // 이제 진짜 스포닝 끝
+                        currentState = SpawnState.Complete;
+                        OnAllEnemiesSpawned?.Invoke();
+                        Debug.Log("[SpawnManager] 현재 웨이브의 모든 적이 필드에 스폰 완료되었습니다.");
+                    }
+                }
                 
-                await UniTask.Delay((int)(spawnCheckInterval * 1000), 
-                    DelayType.DeltaTime, PlayerLoopTiming.Update, cancellationToken);
+                await UniTask.Delay((int)(spawnCheckInterval * 1000), cancellationToken: cancellationToken);
             }
             catch (OperationCanceledException)
             {
@@ -294,7 +341,7 @@ public class SpawnManager : MonoBehaviour
             catch (Exception ex)
             {
                 Debug.LogError($"[SpawnManager] 스폰 처리 오류: {ex.Message}");
-                await UniTask.Delay(1000, DelayType.DeltaTime, PlayerLoopTiming.Update, cancellationToken);
+                await UniTask.Delay(1000, cancellationToken: cancellationToken);
             }
         }
     }
@@ -305,27 +352,15 @@ public class SpawnManager : MonoBehaviour
         while (spawnQueue.Count > 0 && spawnedThisFrame < maxEnemiesPerFrame)
         {
             var request = spawnQueue.Dequeue();
-            // null 체크 및 파괴된 오브젝트 방지
-            if (request.enemyPrefab == null)
-            {
-                Debug.LogWarning("[SpawnManager] enemyPrefab이 null이어서 스폰을 건너뜁니다.");
-                continue;
-            }
-            // 이미 Destroy된 프리팹이거나 유효하지 않은 경우 건너뜀
             if (request.enemyPrefab == null || !request.enemyPrefab)
             {
-                Debug.LogWarning("[SpawnManager] enemyPrefab이 Destroy되어 스폰을 건너뜁니다.");
+                Debug.LogWarning("[SpawnManager] 유효하지 않은 enemyPrefab이어서 스폰을 건너뜁니다.");
                 continue;
             }
-            try
-            {
-                await SpawnEnemyAsync(request, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[SpawnManager] SpawnEnemyAsync 예외: {ex.Message}");
-            }
+            
+            await SpawnEnemyAsync(request, cancellationToken);
             spawnedThisFrame++;
+            
             if (spawnedThisFrame >= maxEnemiesPerFrame)
             {
                 await UniTask.Yield(cancellationToken);
@@ -333,15 +368,11 @@ public class SpawnManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// 개별 적을 스폰합니다.
-    /// </summary>
     private async UniTask SpawnEnemyAsync(SpawnRequest request, CancellationToken cancellationToken)
     {
         await UniTask.Yield(cancellationToken);
         
         string poolKey = request.enemyPrefab.name;
-        
         if (!enemyPools.TryGetValue(poolKey, out var pool))
         {
             Debug.LogError($"[SpawnManager] '{poolKey}' 적의 풀을 찾을 수 없습니다!");
@@ -351,40 +382,19 @@ public class SpawnManager : MonoBehaviour
         GameObject enemy = pool.Get();
         if (enemy != null)
         {
-            // 적 오브젝트 활성화 (가장 중요!)
-            enemy.SetActive(true);
-            
-            // 위치 및 회전 설정
-            enemy.transform.position = request.spawnPosition;
-            enemy.transform.rotation = Quaternion.identity;
-            
-            // 부모 설정 (있는 경우)
+            enemy.transform.SetPositionAndRotation(request.spawnPosition, Quaternion.identity);
             if (enemyParent != null)
             {
                 enemy.transform.SetParent(enemyParent);
             }
             
-            // Enemy 컴포넌트 초기화 및 이벤트 연결
             if (enemy.TryGetComponent<EnemyAdvanced>(out var enemyComponent))
             {
-                // 적 컴포넌트 초기화 (필요한 경우)
-                enemyComponent.ResetEnemy();
                 enemyComponent.OnEnemyKilled += HandleEnemyDestroyed;
-            }
-            else
-            {
-                Debug.LogWarning($"[SpawnManager] 스폰된 적 {enemy.name}에 EnemyAdvanced 컴포넌트가 없습니다!");
             }
             
             activeEnemies.Add(enemy);
-            TotalEnemiesSpawned++; // 총 스폰된 적 수 증가
             OnEnemySpawned?.Invoke(enemy);
-            
-            Debug.Log($"[SpawnManager] 적 스폰 성공: {enemy.name} at {request.spawnPosition}, 활성화 상태: {enemy.activeInHierarchy}, 총 스폰: {TotalEnemiesSpawned}");
-        }
-        else
-        {
-            Debug.LogError("[SpawnManager] 오브젝트 풀에서 적을 가져올 수 없습니다!");
         }
     }
 
@@ -392,38 +402,28 @@ public class SpawnManager : MonoBehaviour
 
     #region 적 관리
 
-    /// <summary>
-    /// 적이 파괴되었을 때 호출되는 핸들러
-    /// </summary>
     private void HandleEnemyDestroyed(GameObject enemy)
     {
         if (activeEnemies.Contains(enemy))
         {
             activeEnemies.Remove(enemy);
-            
-            // 드롭 아이템 생성
             TryDropItem(enemy.transform.position);
-            
             OnEnemyDestroyed?.Invoke(enemy);
             
-            // 모든 적이 제거되었는지 확인
-            if (activeEnemies.Count == 0 && currentState == SpawnState.Complete)
+            // '모든 적이 스폰되었고', '모든 활성 적이 제거되었는지' 확인
+            if (_allEnemiesSpawned && activeEnemies.Count == 0)
             {
+                Debug.Log("[SpawnManager] 웨이브의 모든 적이 처치되었습니다.");
                 OnAllEnemiesCleared?.Invoke();
             }
         }
         
-        // 적을 풀로 반환
         ReturnEnemyToPool(enemy);
     }
 
-    /// <summary>
-    /// 적을 풀로 반환합니다.
-    /// </summary>
     private void ReturnEnemyToPool(GameObject enemy)
     {
         string poolKey = enemy.name.Replace("(Clone)", "");
-        
         if (enemyPools.TryGetValue(poolKey, out var pool))
         {
             pool.Release(enemy);
@@ -435,9 +435,6 @@ public class SpawnManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// 모든 활성 적들을 제거합니다.
-    /// </summary>
     public void ClearAllEnemies()
     {
         foreach (var enemy in activeEnemies.ToArray())
@@ -453,6 +450,8 @@ public class SpawnManager : MonoBehaviour
         
         currentState = SpawnState.Waiting;
         isSpawning = false;
+        _allEnemiesInQueue = false;
+        _allEnemiesSpawned = false;
         
         Debug.Log("[SpawnManager] 모든 적 제거 완료");
     }
@@ -461,9 +460,6 @@ public class SpawnManager : MonoBehaviour
 
     #region 드롭 아이템 시스템
 
-    /// <summary>
-    /// 아이템 드롭을 시도합니다.
-    /// </summary>
     private void TryDropItem(Vector3 dropPosition)
     {
         if (dropItemPrefabs.Count == 0 || UnityEngine.Random.value > dropChance) return;
@@ -479,7 +475,6 @@ public class SpawnManager : MonoBehaviour
     {
         dropItem.transform.position = position + Vector3.up * 0.5f;
         
-        // 물리 효과 적용
         if (dropItem.TryGetComponent<Rigidbody>(out var rb))
         {
             Vector3 randomForce = new Vector3(
@@ -493,15 +488,12 @@ public class SpawnManager : MonoBehaviour
         }
         
         OnItemDropped?.Invoke(dropItem, position);
-        
-        // 일정 시간 후 자동 회수
         AutoCollectDropItemAsync(dropItem, 30f, cancellationTokenSource.Token).Forget();
     }
 
     private async UniTask AutoCollectDropItemAsync(GameObject dropItem, float delay, CancellationToken cancellationToken)
     {
-        await UniTask.Delay((int)(delay * 1000), DelayType.DeltaTime, 
-            PlayerLoopTiming.Update, cancellationToken);
+        await UniTask.Delay((int)(delay * 1000), cancellationToken: cancellationToken);
         
         if (dropItem != null && dropItem.activeInHierarchy)
         {
@@ -515,50 +507,29 @@ public class SpawnManager : MonoBehaviour
 
     private GameObject CreateEnemy(GameObject prefab)
     {
-        // 적을 enemyParent 하위에 생성
         GameObject enemy = Instantiate(prefab, enemyParent);
-        
-        // (Clone) 제거하여 깔끔한 이름으로 설정
         enemy.name = prefab.name;
-        
-        // 초기에는 비활성화 상태로 생성 (풀에서 관리)
         enemy.SetActive(false);
-        
-        Debug.Log($"[SpawnManager] 적 생성: {enemy.name}, 부모: {enemy.transform.parent?.name ?? "없음"}");
-        
         return enemy;
     }
 
     private void OnGetEnemyFromPool(GameObject enemy)
     {
-        // 풀에서 가져올 때 활성화
         enemy.SetActive(true);
-        
-        // 부모가 올바르게 설정되어 있는지 확인
         if (enemy.transform.parent != enemyParent)
         {
             enemy.transform.SetParent(enemyParent);
-            Debug.Log($"[SpawnManager] 적 {enemy.name}의 부모를 {enemyParent.name}으로 재설정");
         }
         
-        // 적 상태 초기화 (ResetEnemy를 사용하여 완전한 초기화)
         if (enemy.TryGetComponent<EnemyAdvanced>(out var enemyComponent))
         {
             enemyComponent.ResetEnemy();
-            Debug.Log($"[SpawnManager] 적 {enemy.name} 완전 초기화 완료 - 이동속도: {enemyComponent.MoveSpeed}");
-        }
-        else
-        {
-            Debug.LogWarning($"[SpawnManager] 적 {enemy.name}에 EnemyAdvanced 컴포넌트가 없습니다!");
         }
     }
 
     private void OnReleaseEnemyToPool(GameObject enemy)
     {
-        // 풀로 반환할 때 비활성화
         enemy.SetActive(false);
-        
-        // 이벤트 연결 해제
         if (enemy.TryGetComponent<EnemyAdvanced>(out var enemyComponent))
         {
             enemyComponent.OnEnemyKilled -= HandleEnemyDestroyed;
@@ -569,7 +540,6 @@ public class SpawnManager : MonoBehaviour
     {
         if (enemy != null)
         {
-            Debug.Log($"[SpawnManager] 적 오브젝트 파괴: {enemy.name}");
             Destroy(enemy);
         }
     }
@@ -577,26 +547,16 @@ public class SpawnManager : MonoBehaviour
     private GameObject CreateDropItem()
     {
         if (dropItemPrefabs.Count == 0) return null;
-        
         GameObject randomPrefab = dropItemPrefabs[UnityEngine.Random.Range(0, dropItemPrefabs.Count)];
-        
-        // 드롭 아이템도 enemyParent 하위에 생성하여 정리 용이
         GameObject dropItem = Instantiate(randomPrefab, enemyParent);
-        
-        // (Clone) 제거
         dropItem.name = randomPrefab.name;
-        
-        // 초기에는 비활성화
         dropItem.SetActive(false);
-        
         return dropItem;
     }
 
     private void OnGetDropItemFromPool(GameObject dropItem)
     {
         dropItem.SetActive(true);
-        
-        // 부모 확인 및 재설정
         if (dropItem.transform.parent != enemyParent)
         {
             dropItem.transform.SetParent(enemyParent);
@@ -622,20 +582,16 @@ public class SpawnManager : MonoBehaviour
 
     private Vector3 GetRandomSpawnPosition(Vector3 basePosition)
     {
-        // spawnPoints 대신 bound 내 랜덤 위치 반환
         float x = UnityEngine.Random.Range(spawnAreaMin.x, spawnAreaMax.x);
         float y = UnityEngine.Random.Range(spawnAreaMin.y, spawnAreaMax.y);
         float z = UnityEngine.Random.Range(spawnAreaMin.z, spawnAreaMax.z);
         return new Vector3(x, y, z);
     }
 
-    /// <summary>
-    /// 스폰 매니저 상태 정보를 반환합니다.
-    /// </summary>
     public string GetStatusInfo()
     {
         return $"상태: {currentState}, 활성 적: {activeEnemies.Count}, 대기 중: {spawnQueue.Count}, " +
-               $"풀 개수: {enemyPools.Count}";
+               $"스폰 중: {isSpawning}, 큐 완료: {_allEnemiesInQueue}, 스폰 완료: {_allEnemiesSpawned}";
     }
 
     #endregion
@@ -649,7 +605,6 @@ public class SpawnManager : MonoBehaviour
         cancellationTokenSource?.Cancel();
         cancellationTokenSource?.Dispose();
         
-        // 오브젝트 풀 정리
         foreach (var pool in enemyPools.Values)
         {
             pool?.Dispose();

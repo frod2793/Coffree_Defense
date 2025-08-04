@@ -335,7 +335,7 @@ public class EnemyAdvanced : MonoBehaviour
         }
         catch (MissingReferenceException)
         {
-            // 오브��트가 이미 파괴된 경우
+            // 오브젝트가 이미 파괴된 경우
             Debug.LogWarning($"적 오브젝트가 초기화 중에 파괴되었습니다.");
         }
         catch (Exception ex)
@@ -1029,12 +1029,12 @@ public class EnemyAdvanced : MonoBehaviour
 
         Debug.Log($"[{gameObject.name}] 적 사망. 코인 {coinReward} 획득");
 
-        // 1초 후 오브젝트 제거
+        // 1초 후 오브젝트 비활성화 (오브젝트 풀링을 위해)
         await UniTask.Delay(1000, DelayType.DeltaTime, PlayerLoopTiming.Update, cancellationToken);
 
         if (gameObject != null)
         {
-            Destroy(gameObject);
+            gameObject.SetActive(false);
         }
     }
 
