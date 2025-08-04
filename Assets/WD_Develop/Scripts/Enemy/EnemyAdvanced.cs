@@ -33,17 +33,16 @@ public class EnemyAdvanced : MonoBehaviour
     private const float HEALTH_CHECK_INTERVAL = 0.1f; // 체력 체크 간격
     private const float ATTACK_INTERVAL = 1.0f; // 공격 간격
     private const float TURRET_DETECT_RANGE = 50f; // 포탑 탐지 범위
-    private const float ATTACK_RANGE = 2.0f; // 공격 범위
+    private const float ATTACK_RANGE = 1.0f; // 공격 범위
     private const float ARRIVAL_THRESHOLD = 1.0f; // 도착 판정 거리
-    private const float STANDARD_MOVE_SPEED = 2f; // 모든 적의 표준 이동속도 (더 일관되게 조정)
-
+   
     #endregion
 
     #region 필드 및 속성
 
     [Header("적 기본 스탯")] 
     [SerializeField] protected float maxHealth = 100f;
-    [SerializeField] protected float moveSpeed = STANDARD_MOVE_SPEED; // 표준 이동속도로 통일
+    [SerializeField] protected float moveSpeed = 0.5f; // 표준 이동속도로 통일
     [SerializeField] protected int coinReward = 10;
     [SerializeField] protected float attackDamage = 20f;
     [SerializeField] protected float attackCooldown = 1.0f;
@@ -1062,8 +1061,6 @@ public class EnemyAdvanced : MonoBehaviour
     /// </summary>
     public void ResetEnemy()
     {
-        // 이동 속도 강제 재설정 (가장 중요!)
-        moveSpeed = STANDARD_MOVE_SPEED;
         
         // 상태 초기화
         currentState = EnemyState.Spawning;
@@ -1109,8 +1106,6 @@ public class EnemyAdvanced : MonoBehaviour
     /// </summary>
     public void QuickReset()
     {
-        // 이동 속도 강제 재설정
-        moveSpeed = STANDARD_MOVE_SPEED;
         
         // 핵심 상태를 빠르게 초기화
         currentState = EnemyState.Spawning;

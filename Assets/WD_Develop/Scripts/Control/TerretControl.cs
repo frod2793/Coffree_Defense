@@ -27,6 +27,10 @@ public class TerretControl : MonoBehaviour
     [SerializeField]
     private GameObject turretBonePrefab; // 뼈대 터렛 프리팹 (조합의 기본 형태)
     
+    [Header("터렛 생성 설정")]
+    [SerializeField]
+    private Transform turretSpawnPoint; // 터렛이 생성될 위치
+    
     [Header("조합 데이터")]
     [SerializeField] private TurretCombinationData combinationData; // 조합법 데이터
     private TurretBase highlightedTurret; // 현재 하이라이트된 터렛
@@ -76,24 +80,30 @@ public class TerretControl : MonoBehaviour
         isGroundPlaneInitialized = true;
     }
 
-    public async UniTask SetAddTurretAsync(CancellationToken cancellationToken = default)
+    private async UniTask SetAddTurretAsync(CancellationToken cancellationToken = default)
     {
         if (turretBonePrefab == null)
         {
             Debug.LogError("TurretBonePrefab이 설정되지 않았습니다! Inspector에서 할당해주세요.");
             return;
         }
+
+        if (turretSpawnPoint == null)
+        {
+            Debug.LogError("turretSpawnPoint가 설정되지 않았습니다! Inspector에서 할당해주세요.");
+            return;
+        }
         
         // 터렛 생성을 다음 프레임으로 분산
         await UniTask.Yield(cancellationToken);
         
-        // 뼈대 터렛 프리팹을 바닥에 배치
-        GameObject newTurret = Instantiate(turretBonePrefab, new Vector3(0, 1, 0), Quaternion.identity);
+        // 지정된 스폰 위치에 뼈대 터렛 프리팹을 배치
+        GameObject newTurret = Instantiate(turretBonePrefab, turretSpawnPoint.position, turretSpawnPoint.rotation);
         
         // 터렛 레이어 설정을 비동기로 처리
         await SetTurretLayerAsync(newTurret, cancellationToken);
         
-        Debug.Log($"뼈대 터렛 배치 완료: {newTurret.name}");
+        Debug.Log($"뼈대 터렛 배치 완료: {newTurret.name} at {turretSpawnPoint.position}");
     }
 
     public void SetAddTurret()

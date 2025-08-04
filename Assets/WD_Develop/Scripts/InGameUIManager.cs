@@ -43,7 +43,6 @@ public class InGameUIManager : MonoBehaviour
     [Header("In-Game UI Manager")]
     [SerializeField] private GameObject inGameUI;
     [SerializeField] private GameManager gameManager;
-
     [SerializeField] private Button addTurretButton;
 
     
@@ -66,7 +65,7 @@ public class InGameUIManager : MonoBehaviour
     [SerializeField] private int eventTriggerBatchSize = 5; // 이벤트 트리거 설정 시 프레임 분산 크기
 
     [Header("게임 상태")]
-    [SerializeField] private TMPro.TextMeshProUGUI GameCountDownText; // 게임 카운트다운 텍스트
+    [SerializeField] private TextMeshProUGUI GameCountDownText; // 게임 카운트다운 텍스트
     [SerializeField] private float countdownDuration = 10f; // 카운트다운 시간 (초)
     [SerializeField] private bool enableCountdown = true; // 카운트다운 활성화 여부
     
@@ -75,7 +74,7 @@ public class InGameUIManager : MonoBehaviour
     [SerializeField] private int waterPressCost = 10; // 워터 프레스 사용 비용 (워터포인트)
     [SerializeField] private int waterPressReward = 50; // 워터 프레스 사용시 코인 보상
     [SerializeField] private float waterPressCooldown = 5f; // 워터 프레스 쿨다운 시간 (초)
-    [SerializeField] private TMPro.TextMeshProUGUI waterPressCooldownText; // 쿨다운 표시 텍스트
+    [SerializeField] private TextMeshProUGUI waterPressCooldownText; // 쿨다운 표시 텍스트
     [SerializeField] private bool enableHydroPrefabSpawn = false; // 수압프레스 프리팹 스폰 활성화 여부
     
     // 워터 프레스 상태 관리

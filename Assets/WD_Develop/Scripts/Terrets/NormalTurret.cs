@@ -15,9 +15,18 @@ public class NormalTurret : TurretBase
     #region 필드 및 속성
 
     [Header("일반 터렛 전용 설정")]
+    /// <summary>
+    /// 발사할 총알의 프리팹. 인스펙터에서 설정합니다.
+    /// </summary>
     [SerializeField] private GameObject bulletPrefab;
-    [SerializeField] private Transform firePoint; // 총알이 발사되는 위치
-    [SerializeField] private Transform turretHead; // 터렛 헤드 (조준용)
+    /// <summary>
+    /// 총알이 생성되고 발사되는 시작 지점 Transform. 인스펙터에서 설정합니다.
+    /// </summary>
+    [SerializeField] private Transform firePoint;
+    /// <summary>
+    /// 적을 조준하기 위해 좌우로 회전하는 터렛의 머리 부분 Transform. 인스펙터에서 설정합니다.
+    /// </summary>
+    [SerializeField] private Transform turretHead;
 
     [Header("터렛 스탯")]
     [SerializeField] private float range = 15f;
