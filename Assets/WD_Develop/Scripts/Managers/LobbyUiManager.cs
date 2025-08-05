@@ -9,15 +9,20 @@ namespace WD_Develop.Scripts.Managers
     {
         [SerializeField]
         Button playButton;// 플레이버튼 
+
+        [SerializeField]
+        Button settingButton;// 셋팅버튼 
         
         [Header("아이템 구매 창")]
         [SerializeField] 
         private GameObject buyPopUpPanel; // 플레이버튼 클릭시 나올 플레이전 아이템 구매 창
+
+        [SerializeField] 
+        private GameObject settingPopUpPanel; // 셋팅 창
         [SerializeField]
         private Button gameStartButton; // 아이템 구매 창에서 게임 시작 버튼
         [SerializeField]
         private Button closeButton; // 아이템 구매 창에서 닫기 버튼
-
         [SerializeField]
         private Button buyTpButton; // 포탑 포인트 구매 버튼 
         [SerializeField]
@@ -81,6 +86,8 @@ namespace WD_Develop.Scripts.Managers
         {
             // 플레이 버튼 이벤트 연결
             playButton.onClick.AddListener(OnPlayButtonClicked);
+            // 셋팅 버튼 이벤트 연결
+            settingButton.onClick.AddListener(OnSettingButtonClicked);
 
             // 팝업 내 버튼들 이벤트 연결
             gameStartButton.onClick.AddListener(OnGameStartButtonClicked);
@@ -107,15 +114,20 @@ namespace WD_Develop.Scripts.Managers
         {
             ShowBuyPopup();
         }
+        
+        private void OnSettingButtonClicked()
+        {
+            ShowSettingPopup();
+        }
 
         private void OnGameStartButtonClicked()
         {
             // 게임 시작 로직
             Debug.Log("게임을 시작합니다!");
-            
+
             // 게임 씬으로 이동 (실제 게임 씬 이름으로 변경 필요)
             // SceneManager.LoadScene("YourGameSceneName");
-            
+
             // 현재는 팝업을 닫기만 함
             HideBuyPopup();
         }
@@ -124,6 +136,7 @@ namespace WD_Develop.Scripts.Managers
         {
             HideBuyPopup();
         }
+        
 
         private void OnBuyTurretPointsClicked()
         {
@@ -134,7 +147,7 @@ namespace WD_Develop.Scripts.Managers
                 DataManger.Instance.SpendCoin(turretPointsCost);
                 DataManger.Instance.AddTP(boughtTurretPoints);
                 UserPointUpdate();
-                
+
                 Debug.Log($"포탑 포인트 구매 완료! 현재 포탑 포인트: {turretPoints}");
                 // 구매 성공 애니메이션
                 AnimateButtonPress(buyTpButton.gameObject);
@@ -230,6 +243,19 @@ namespace WD_Develop.Scripts.Managers
                     .OnComplete(() => buyPopUpPanel.SetActive(false));
             }
         }
+        
+        private void ShowSettingPopup()
+        {
+            if (settingPopUpPanel != null)
+            {
+                settingPopUpPanel.SetActive(true);
+
+                // 팝업 등장 애니메이션 (스케일 + 바운스 효과)
+                settingPopUpPanel.transform.localScale = Vector3.zero;
+                settingPopUpPanel.transform.DOScale(Vector3.one, animationDuration)
+                    .SetEase(Ease.OutBack);
+            }
+        }
 
         #endregion
 
@@ -240,7 +266,7 @@ namespace WD_Develop.Scripts.Managers
             // 버튼 눌림 효과 애니메이션
             button.transform.DOScale(scaleAmount, 0.1f)
                 .SetEase(Ease.OutQuad)
-                .OnComplete(() => 
+                .OnComplete(() =>
                 {
                     button.transform.DOScale(1f, 0.1f)
                         .SetEase(Ease.InQuad);
