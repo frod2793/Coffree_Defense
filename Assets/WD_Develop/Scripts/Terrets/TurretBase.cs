@@ -40,17 +40,20 @@ public class TurretBase : MonoBehaviour
     [SerializeField] protected float attackSpeed = 1f;
     [SerializeField] private float maxHp = 100f;
     [SerializeField] private float currentHp = 100f;
-    
+
     [Header("시각적 효과")]
     [SerializeField] private GameObject destructionEffect;
-    
+    [SerializeField] private Vector3 hpBarOffset = new Vector3(0, -1.5f, 0); // 터렛 발밑에 HP바가 표시되도록 오프셋 조정
+
     // 상태 관리
     public TerretState currentState { get; private set; }
     
     // 컴포넌트 캐시
     private Outlinable outlineComponent;
     private CombinationEffect combinationEffect;
-    
+    private HPBarController hpBarController;
+    private InGameUIManager inGameUIManager; // UI 매니저 캐시
+
     // UniTask 관련
     private CancellationTokenSource cancellationTokenSource;
     private bool isInitialized;
@@ -110,7 +113,8 @@ public class TurretBase : MonoBehaviour
         }
         
         combinationEffect = GetComponent<CombinationEffect>();
-        
+        inGameUIManager = FindAnyObjectByType<InGameUIManager>(); // UI 매니저 찾기
+
         // HP 초기화
         currentHp = maxHp;
     }
@@ -126,6 +130,9 @@ public class TurretBase : MonoBehaviour
             // 필수 컴포넌트 검증
             ValidateRequiredComponents();
             
+            // HP 바 생성 요청
+            SetupHPBar();
+
             isInitialized = true;
             
             Debug.Log($"[{gameObject.name}] 터렛 초기화 완료");
@@ -141,6 +148,10 @@ public class TurretBase : MonoBehaviour
         if (outlineComponent == null)
         {
             Debug.LogWarning($"[{gameObject.name}] Outlinable 컴포넌트가 없습니다.");
+        }
+        if (inGameUIManager == null)
+        {
+            Debug.LogError("[TurretBase] InGameUIManager를 씬에서 찾을 수 없습니다!");
         }
     }
 
@@ -395,11 +406,15 @@ public class TurretBase : MonoBehaviour
     protected virtual void OnDamageTaken(float damage, float previousHp, float newHp)
     {
         Debug.Log($"[{gameObject.name}] 데미지 {damage:F1} 받음. HP: {previousHp:F1} → {newHp:F1}");
+        // HP 바 업데이트
+        hpBarController?.UpdateHP(newHp, maxHp);
     }
 
     protected virtual void OnHealed(float amount, float previousHp, float newHp)
     {
         Debug.Log($"[{gameObject.name}] 회복 {amount:F1}. HP: {previousHp:F1} → {newHp:F1}");
+        // HP 바 업데이트
+        hpBarController?.UpdateHP(newHp, maxHp);
     }
 
     /// <summary>
@@ -450,6 +465,28 @@ public class TurretBase : MonoBehaviour
     protected virtual void OnTurretDestroyed()
     {
         Debug.Log($"[{gameObject.name}] 터렛 파괴됨");
+        // HP 바는 타겟이 사라지면 스스로 파괴되므로 별도 처리가 필요 없습니다.
+    }
+
+    #endregion
+
+    #region HP 바 시스템
+
+    /// <summary>
+    /// HP 바를 설정하고 UI 매니저에 생성을 요청합니다.
+    /// </summary>
+    private void SetupHPBar()
+    {
+        if (inGameUIManager == null) return;
+
+        // UI 매니저에게 터렛용 HP 바 생성을 요청합니다.
+        hpBarController = inGameUIManager.RequestTurretHPBar(transform, hpBarOffset);
+
+        // 초기 HP 값을 설정합니다.
+        if (hpBarController != null)
+        {
+            hpBarController.UpdateHP(currentHp, maxHp);
+        }
     }
 
     #endregion

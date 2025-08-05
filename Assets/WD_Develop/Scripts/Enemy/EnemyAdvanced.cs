@@ -55,6 +55,7 @@ public class EnemyAdvanced : MonoBehaviour
     [SerializeField] protected GameObject deathEffect;
     [SerializeField] protected GameObject hitEffect;
     [SerializeField] protected GameObject attackEffect;
+    [SerializeField] private Vector3 hpBarOffset = new Vector3(0, 2.5f, 0); // 적 머리 위에 HP바가 표시되도록 오프셋 조정
 
     // 상태 관리
     public EnemyState currentState { get; private set; }
@@ -78,6 +79,10 @@ public class EnemyAdvanced : MonoBehaviour
     protected Vector3 knockbackVelocity = Vector3.zero;
     protected float knockbackDuration = 0f;
     protected float knockbackTimer = 0f;
+
+    // 컴포넌트 캐시
+    private InGameUIManager inGameUIManager;
+    private HPBarController hpBarController;
 
     // UniTask 관련
     protected CancellationTokenSource cancellationTokenSource;
@@ -279,6 +284,7 @@ public class EnemyAdvanced : MonoBehaviour
         currentHealth = maxHealth;
         currentState = EnemyState.Spawning;
         lastAttackTime = Time.time;
+        inGameUIManager = FindAnyObjectByType<InGameUIManager>();
     }
 
     protected virtual async UniTask InitializeAsync(CancellationToken cancellationToken)
@@ -301,6 +307,9 @@ public class EnemyAdvanced : MonoBehaviour
                 Debug.LogWarning($"[{gameObject.name}] 초기화 중 오브젝트가 무효화되었습니다.");
                 return;
             }
+
+            // HP 바 설정
+            SetupHPBar();
 
             // 가장 가까운 포탑 찾기
             await FindNearestTurretAsync(cancellationToken);
@@ -995,6 +1004,8 @@ public class EnemyAdvanced : MonoBehaviour
     protected virtual void OnDamageTaken(float damage, float previousHealth, float newHealth)
     {
         Debug.Log($"[{gameObject.name}] 데미지 {damage:F1} 받음. HP: {previousHealth:F1} → {newHealth:F1}");
+        // HP 바 업데이트
+        hpBarController?.UpdateHP(newHealth, maxHealth);
     }
 
     protected virtual async UniTask ShowHitEffectAsync(CancellationToken cancellationToken)
@@ -1040,6 +1051,7 @@ public class EnemyAdvanced : MonoBehaviour
     protected virtual void OnEnemyDeath()
     {
         OnEnemyKilled?.Invoke(gameObject);
+        // HP 바는 타겟(적)이 비활성화되면 스스로 파괴되므로 별도 처리가 필요 없습니다.
     }
 
     protected virtual async UniTask ShowDeathEffectAsync(CancellationToken cancellationToken)
@@ -1049,6 +1061,36 @@ public class EnemyAdvanced : MonoBehaviour
             await UniTask.Yield(cancellationToken);
             var effect = Instantiate(deathEffect, transform.position, Quaternion.identity);
             Destroy(effect, 3f);
+        }
+    }
+
+    #endregion
+
+    #region HP 바 시스템
+
+    /// <summary>
+    /// HP 바를 설정하고 UI 매니저에 생성을 요청합니다.
+    /// </summary>
+    private void SetupHPBar()
+    {
+        if (inGameUIManager == null) 
+        {
+            // Awake에서 찾지 못했을 경우를 대비한 방어 코드
+            inGameUIManager = FindAnyObjectByType<InGameUIManager>();
+            if (inGameUIManager == null)
+            {
+                Debug.LogWarning($"[{gameObject.name}] InGameUIManager를 찾을 수 없어 HP 바를 생성할 수 없습니다.");
+                return;
+            }
+        }
+
+        // UI 매니저에게 적 유닛용 HP 바 생성을 요청합니다.
+        hpBarController = inGameUIManager.RequestEnemyHPBar(transform, hpBarOffset);
+
+        // 초기 HP 값을 설정합니다.
+        if (hpBarController != null)
+        {
+            hpBarController.UpdateHP(currentHealth, maxHealth);
         }
     }
 
@@ -1126,6 +1168,9 @@ public class EnemyAdvanced : MonoBehaviour
         
         // 초기화 플래그 리셋
         isInitialized = false;
+
+        // HP 바 재설정
+        SetupHPBar();
         
         Debug.Log($"[{gameObject.name}] 빠른 초기화 완료 - 이동속도: {moveSpeed}");
     }

@@ -132,6 +132,7 @@ MonoBehaviour:
   maxHp: 100
   currentHp: 100
   destructionEffect: {fileID: 0}
+  hpBarOffset: {x: 0, y: -50, z: 0}
 --- !u!54 &8068202088615397684
 Rigidbody:
   m_ObjectHideFlags: 0

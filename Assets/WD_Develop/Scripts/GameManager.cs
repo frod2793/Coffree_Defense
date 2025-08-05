@@ -382,7 +382,7 @@ public class GameManager : MonoBehaviour
             uiManager.UpdateEnemyCount(enemiesKilled, totalEnemiesInWave);
         }
         
-        Debug.Log($"[GameManager] 적 처치: {enemiesKilled}/{totalEnemiesInWave}");
+        // Debug.Log($"[GameManager] 적 처치: {enemiesKilled}/{totalEnemiesInWave}");
         
         // 모든 적이 처치되었는지 확인
         if (enemiesKilled >= totalEnemiesInWave && totalEnemiesInWave > 0)

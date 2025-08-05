@@ -41,6 +41,7 @@ public class InGameUIManager : MonoBehaviour
     private TerretControl terretControl;
 
     [Header("In-Game UI Manager")]
+    [SerializeField] Camera inGameCamera;
     [SerializeField] private GameObject inGameUI;
     [SerializeField] private GameManager gameManager;
     [SerializeField] private Button addTurretButton;
@@ -76,7 +77,13 @@ public class InGameUIManager : MonoBehaviour
     [SerializeField] private float waterPressCooldown = 5f; // 워터 프레스 쿨다운 시간 (초)
     [SerializeField] private TextMeshProUGUI waterPressCooldownText; // 쿨다운 표시 텍스트
     [SerializeField] private bool enableHydroPrefabSpawn = false; // 수압프레스 프리팹 스폰 활성화 여부
-    
+
+
+    [Header("터렛 및 적 hp 정보")]
+    [SerializeField] private Canvas hpWorldCanvas; // hp 프리펩을 표시할 캔버스
+    [SerializeField] private Slider turretHPSliderPrefb; // 터렛 hp 슬라이더프리펩
+    [SerializeField] private Slider enemyHPSliderPrefb; // 적 hp 슬라이더프리펩
+
     // 워터 프레스 상태 관리
     private bool isWaterPressOnCooldown = false;
     private float waterPressCooldownTimer = 0f;
@@ -1171,6 +1178,70 @@ public class InGameUIManager : MonoBehaviour
         {
             Debug.LogWarning("[InGameUIManager] enemyText가 할당되지 않았습니다.");
         }
+    }
+
+    #endregion
+    
+    #region HP Bar System
+
+    /// <summary>
+    /// 터렛을 위한 HP 바를 생성하도록 요청합니다.
+    /// </summary>
+    /// <param name="target">HP 바가 따라다닐 터렛 Transform</param>
+    /// <param name="offset">터렛으로부터의 위치 오프셋</param>
+    /// <returns>생성된 HPBarController</returns>
+    public HPBarController RequestTurretHPBar(Transform target, Vector3 offset)
+    {
+        return CreateHPBarFor(target, turretHPSliderPrefb, offset);
+    }
+
+    /// <summary>
+    /// 적을 위한 HP 바를 생성하도록 요청합니다.
+    /// </summary>
+    /// <param name="target">HP 바가 따라다닐 적 Transform</param>
+    /// <param name="offset">적으로부터의 위치 오프셋</param>
+    /// <returns>생성된 HPBarController</returns>
+    public HPBarController RequestEnemyHPBar(Transform target, Vector3 offset)
+    {
+        return CreateHPBarFor(target, enemyHPSliderPrefb, offset);
+    }
+
+    /// <summary>
+    /// 지정된 대상에 대한 월드 공간 HP 바를 생성하고 초기화합니다. (내부용)
+    /// </summary>
+    private HPBarController CreateHPBarFor(Transform target, Slider hpBarPrefab, Vector3 offset)
+    {
+        if (hpWorldCanvas == null)
+        {
+            Debug.LogError("[InGameUIManager] HP 바를 표시할 월드 캔버스가 할당되지 않았습니다!");
+            return null;
+        }
+
+        if (hpBarPrefab == null)
+        {
+            Debug.LogError("[InGameUIManager] HP 바 프리팹이 제공되지 않았습니다!");
+            return null;
+        }
+
+        if (target == null)
+        {
+            Debug.LogError("[InGameUIManager] HP 바를 부착할 대상이 없습니다!");
+            return null;
+        }
+
+        Slider hpBarInstance = Instantiate(hpBarPrefab, hpWorldCanvas.transform);
+        HPBarController controller = hpBarInstance.GetComponent<HPBarController>();
+
+        if (controller == null)
+        {
+            Debug.LogError($"[InGameUIManager] HP 바 프리팹 '{hpBarPrefab.name}'에 HPBarController 컴포넌트가 없습니다!", hpBarPrefab);
+            Destroy(hpBarInstance.gameObject);
+            return null;
+        }
+
+        controller.Initialize(target, offset);
+        Debug.Log($"[InGameUIManager] {target.name}을 위한 HP 바를 생성했습니다.");
+        return controller;
     }
 
     #endregion
