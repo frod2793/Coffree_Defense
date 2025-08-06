@@ -42,7 +42,6 @@ public class TurretBase : MonoBehaviour
     [SerializeField] private float currentHp = 100f;
 
     [Header("시각적 효과")]
-    [SerializeField] private GameObject destructionEffect;
     [SerializeField] private Vector3 hpBarOffset = new Vector3(0, -1.5f, 0); // 터렛 발밑에 HP바가 표시되도록 오프셋 조정
 
     // 상태 관리
@@ -50,7 +49,6 @@ public class TurretBase : MonoBehaviour
     
     // 컴포넌트 캐시
     private Outlinable outlineComponent;
-    private CombinationEffect combinationEffect;
     private HPBarController hpBarController;
     private InGameUIManager inGameUIManager; // UI 매니저 캐시
 
@@ -112,7 +110,6 @@ public class TurretBase : MonoBehaviour
             outlineComponent.enabled = false;
         }
         
-        combinationEffect = GetComponent<CombinationEffect>();
         inGameUIManager = FindAnyObjectByType<InGameUIManager>(); // UI 매니저 찾기
 
         // HP 초기화
@@ -424,10 +421,11 @@ public class TurretBase : MonoBehaviour
     {
         ChangeState(TerretState.Destroyed);
         
-        await PlayDestructionEffectAsync(cancellationToken);
+        PlayDestructionEffect();
         
         OnTurretDestroyed();
         
+        await UniTask.Yield(cancellationToken); // 이펙트가 재생될 시간을 줍니다.
         gameObject.SetActive(false);
     }
 
@@ -445,20 +443,11 @@ public class TurretBase : MonoBehaviour
         gameObject.SetActive(false);
     }
 
-    private async UniTask PlayDestructionEffectAsync(CancellationToken cancellationToken)
-    {
-        if (destructionEffect != null)
-        {
-            await UniTask.Yield(cancellationToken);
-            Instantiate(destructionEffect, transform.position, Quaternion.identity);
-        }
-    }
-
     private void PlayDestructionEffect()
     {
-        if (destructionEffect != null)
+        if (EffectManager.Instance != null)
         {
-            Instantiate(destructionEffect, transform.position, Quaternion.identity);
+            EffectManager.Instance.PlayEffect(EffectType.TurretDestroy, transform.position);
         }
     }
 
@@ -515,7 +504,7 @@ public class TurretBase : MonoBehaviour
         // 조합 효과 표시를 다음 프레임으로 분산
         await UniTask.Yield(cancellationToken);
         
-        ShowCombiningEffect();
+        if (EffectManager.Instance != null) EffectManager.Instance.PlayLoopingEffect(EffectType.CombinationHighlight, transform, this);
         SetOutline(true, Color.cyan, CombinationOutlineWidth);
         
         OnCombiningStarted();
@@ -530,7 +519,7 @@ public class TurretBase : MonoBehaviour
             
         ChangeState(TerretState.Combining);
         
-        ShowCombiningEffect();
+        if (EffectManager.Instance != null) EffectManager.Instance.PlayLoopingEffect(EffectType.CombinationHighlight, transform, this);
         SetOutline(true, Color.cyan, CombinationOutlineWidth);
         
         OnCombiningStarted();
@@ -541,11 +530,6 @@ public class TurretBase : MonoBehaviour
         return currentState != TerretState.Combining && 
                currentState != TerretState.Destroyed &&
                IsAlive;
-    }
-
-    private void ShowCombiningEffect()
-    {
-        combinationEffect?.ShowCombiningEffect();
     }
 
     protected virtual void OnCombiningStarted()
@@ -565,7 +549,7 @@ public class TurretBase : MonoBehaviour
         // 조합 효과 처리를 다음 프레임으로 분산
         await UniTask.Yield(cancellationToken);
         
-        HideCombiningEffect();
+        if (EffectManager.Instance != null) EffectManager.Instance.StopLoopingEffect(this);
         DisableOutline();
         
         OnCombiningEnded();
@@ -580,15 +564,10 @@ public class TurretBase : MonoBehaviour
             
         ChangeState(TerretState.Idle);
         
-        HideCombiningEffect();
+        if (EffectManager.Instance != null) EffectManager.Instance.StopLoopingEffect(this);
         DisableOutline();
         
         OnCombiningEnded();
-    }
-
-    private void HideCombiningEffect()
-    {
-        combinationEffect?.HideCombiningEffect();
     }
 
     protected virtual void OnCombiningEnded()

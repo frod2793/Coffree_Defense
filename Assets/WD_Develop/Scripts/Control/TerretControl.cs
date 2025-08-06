@@ -17,7 +17,7 @@ public class TerretControl : MonoBehaviour
     private Plane groundPlane;
     private float initialY;
     private InGameUIManager uiManager;
-    
+
     // 터렛이 이동 가능한 상태인지 확인하는 변수
     private bool canMoveTurret = true;
     
@@ -295,6 +295,8 @@ public class TerretControl : MonoBehaviour
                         highlightedTurret.SetOutline(false);
                         // 조합 모드를 종료
                         highlightedTurret.EndCombining();
+                        // 조합 효과 제거
+                        HideCombinationEffect(highlightedTurret);
                     }
                     
                     // 새 터렛 하이라이트
@@ -437,15 +439,18 @@ public class TerretControl : MonoBehaviour
     /// </summary>
     private async UniTask ProcessCombinationAsync(ItemA item, CancellationToken cancellationToken)
     {
-        // 조합 이펙트 제거
+        // 조합 하이라이트 이펙트 제거
         HideCombinationEffect(highlightedTurret);
         
         // 조합 결과 확인
         TurretBase resultPrefab = combinationData.GetCombinationResult(highlightedTurret, item);
         if (resultPrefab != null)
         {
-            // 조합 성공 시 조합 효과 표시
-            PlayCombinationSuccessEffect(highlightedTurret.transform.position);
+            // 조합 성공 시 조합 효과 표시 (EffectManager 사용)
+            if (EffectManager.Instance != null)
+            {
+                EffectManager.Instance.PlayEffect(EffectType.CombinationSuccess, highlightedTurret.transform.position);
+            }
             
             Debug.Log($"조합 성공! {highlightedTurret.name} + {selectedItemPrefab.name} = {resultPrefab.name}");
             
@@ -474,8 +479,11 @@ public class TerretControl : MonoBehaviour
         }
         else
         {
-            // 조합 실패 시 효과 표시
-            PlayCombinationFailEffect(highlightedTurret.transform.position);
+            // 조합 실패 시 효과 표시 (EffectManager 사용)
+            if (EffectManager.Instance != null)
+            {
+                EffectManager.Instance.PlayEffect(EffectType.CombinationFail, highlightedTurret.transform.position);
+            }
             
             // 조합 실패 시 터렛 조합 모드 종료 (비동기)
             await highlightedTurret.EndCombiningAsync(cancellationToken);
@@ -643,18 +651,18 @@ public class TerretControl : MonoBehaviour
             : previewObject.layer;
         
         // 모든 자식 오브젝트에 대해 처리
-        foreach (Renderer renderer in previewObject.GetComponentsInChildren<Renderer>())
+        foreach (Renderer rend in previewObject.GetComponentsInChildren<Renderer>())
         {
             // 반투명 효과 적용
-            Color color = renderer.material.color;
+            Color color = rend.material.color;
             color.a = 0.5f; // 50% 투명도
-            renderer.material.color = color;
+            rend.material.color = color;
         }
         
         // 콜라이더가 있다면 비활성화 (드래그 중 물리 충돌 방지)
-        foreach (Collider collider in previewObject.GetComponentsInChildren<Collider>())
+        foreach (Collider col in previewObject.GetComponentsInChildren<Collider>())
         {
-            collider.enabled = false;
+            col.enabled = false;
         }
         
         // 게임 로직 관련 컴포넌트 비활성화 (필요에 따라 수정)
@@ -670,18 +678,10 @@ public class TerretControl : MonoBehaviour
     /// </summary>
     private void ShowCombinationEffect(TurretBase turret)
     {
-        if (turret == null) return;
-        
-        // 터렛에 CombinationEffect 컴포넌트가 있는지 확인하고 효과 표시
-        CombinationEffect combinationEffect = turret.GetComponent<CombinationEffect>();
-        if (combinationEffect != null)
-        {
-            combinationEffect.ShowCombiningEffect();
-        }
-        else
-        {
-            Debug.LogWarning($"터렛 {turret.name}에 CombinationEffect 컴포넌트가 없습니다.");
-        }
+        if (turret == null || EffectManager.Instance == null) return;
+
+        // EffectManager를 통해 조합 하이라이트 효과 표시 (지속)
+        EffectManager.Instance.PlayLoopingEffect(EffectType.CombinationHighlight, turret.transform, turret);
         
         Debug.Log($"터렛 {turret.name}에 조합 효과 표시");
     }
@@ -691,68 +691,13 @@ public class TerretControl : MonoBehaviour
     /// </summary>
     private void HideCombinationEffect(TurretBase turret)
     {
-        if (turret == null) return;
+        if (turret == null || EffectManager.Instance == null) return;
         
-        // 터렛에 CombinationEffect 컴포넌트가 있는지 확인하고 효과 숨김
-        CombinationEffect combinationEffect = turret.GetComponent<CombinationEffect>();
-        if (combinationEffect != null)
-        {
-            combinationEffect.HideCombiningEffect();
-        }
+        // EffectManager를 통해 조합 하이라이트 효과 숨김
+        EffectManager.Instance.StopLoopingEffect(turret);
         
         Debug.Log($"터렛 {turret.name}의 조합 효과 제거");
     }
-    
-    /// <summary>
-    /// 조합 성공 이펙트를 재생합니다. (비동기 버전)
-    /// </summary>
-    private async UniTask PlayCombinationSuccessEffectAsync(Vector3 position, CancellationToken cancellationToken = default)
-    {
-        // 조합 성공 이펙트 구현 (파티클, 사운드 등)
-        Debug.Log("조합 성공 이펙트 재생");
-
-        // 이펙트 처리를 다음 프레임으로 분산
-        await UniTask.Yield(cancellationToken);
-
-        // 예시: 파티클 시스템 생성 및 재생
-        // GameObject effect = Instantiate(combinationSuccessEffectPrefab, position, Quaternion.identity);
-        // Destroy(effect, 2f); // 2초 후 이펙트 제거
-    }
-
-    /// <summary>
-    /// 조합 성공 이펙트를 재생합니다.
-    /// </summary>
-    private void PlayCombinationSuccessEffect(Vector3 position)
-    {
-        // 동기 버전 유지 (하위 호환성)
-        PlayCombinationSuccessEffectAsync(position, cancellationTokenSource.Token).Forget();
-    }
-
-    /// <summary>
-    /// 조합 실패 이펙트를 재생합니다. (비동기 버전)
-    /// </summary>
-    private async UniTask PlayCombinationFailEffectAsync(Vector3 position, CancellationToken cancellationToken = default)
-    {
-        // 조합 실패 이펙트 구현 (파티클, 사운드 등)
-        Debug.Log("조합 실패 이펙트 재생");
-
-        // 이펙트 처리를 다음 프레임으로 분산
-        await UniTask.Yield(cancellationToken);
-
-        // 예시: 파티클 시스템 생성 및 재생
-        // GameObject effect = Instantiate(combinationFailEffectPrefab, position, Quaternion.identity);
-        // Destroy(effect, 1.5f); // 1.5초 후 이펙트 제거
-    }
-
-    /// <summary>
-    /// 조합 실패 이펙트를 재생합니다.
-    /// </summary>
-    private void PlayCombinationFailEffect(Vector3 position)
-    {
-        // 동기 버전 유지 (하위 호환성)
-        PlayCombinationFailEffectAsync(position, cancellationTokenSource.Token).Forget();
-    }
-
 
     private void OnDestroy()
     {

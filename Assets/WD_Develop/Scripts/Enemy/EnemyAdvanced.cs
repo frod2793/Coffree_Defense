@@ -52,9 +52,6 @@ public class EnemyAdvanced : MonoBehaviour
     [SerializeField] protected string cafeWallTag = "CafeWall";
 
     [Header("시각적 효과")] 
-    [SerializeField] protected GameObject deathEffect;
-    [SerializeField] protected GameObject hitEffect;
-    [SerializeField] protected GameObject attackEffect;
     [SerializeField] private Vector3 hpBarOffset = new Vector3(0, 2.5f, 0); // 적 머리 위에 HP바가 표시되도록 오프셋 조정
 
     // 상태 관리
@@ -931,10 +928,9 @@ public class EnemyAdvanced : MonoBehaviour
 
     protected virtual void ShowAttackEffect()
     {
-        if (attackEffect != null)
+        if (EffectManager.Instance != null)
         {
-            var effect = Instantiate(attackEffect, transform.position + transform.forward, transform.rotation);
-            Destroy(effect, 2f);
+            EffectManager.Instance.PlayEffect(EffectType.EnemyAttack, transform.position + transform.forward);
         }
     }
 
@@ -975,30 +971,23 @@ public class EnemyAdvanced : MonoBehaviour
         }
     }
 
-    public virtual async UniTask TakeDamageAsync(float damage, CancellationToken cancellationToken = default)
+    public virtual void TakeDamage(float damage)
     {
         if (currentState == EnemyState.Dead || damage <= 0) return;
 
         var previousHealth = currentHealth;
         currentHealth = Mathf.Max(0, currentHealth - damage);
 
-        await UniTask.Yield(cancellationToken);
-
         OnHealthChanged?.Invoke(this, currentHealth);
         OnDamageTaken(damage, previousHealth, currentHealth);
 
         // 히트 이펙트 표시
-        await ShowHitEffectAsync(cancellationToken);
+        ShowHitEffect();
 
         if (currentHealth <= 0)
         {
-            await DieAsync(cancellationToken);
+            DieAsync(cancellationTokenSource.Token).Forget();
         }
-    }
-
-    public virtual void TakeDamage(float damage)
-    {
-        TakeDamageAsync(damage, cancellationTokenSource.Token).Forget();
     }
 
     protected virtual void OnDamageTaken(float damage, float previousHealth, float newHealth)
@@ -1008,13 +997,11 @@ public class EnemyAdvanced : MonoBehaviour
         hpBarController?.UpdateHP(newHealth, maxHealth);
     }
 
-    protected virtual async UniTask ShowHitEffectAsync(CancellationToken cancellationToken)
+    protected virtual void ShowHitEffect()
     {
-        if (hitEffect != null)
+        if (EffectManager.Instance != null)
         {
-            await UniTask.Yield(cancellationToken);
-            var effect = Instantiate(hitEffect, transform.position, Quaternion.identity);
-            Destroy(effect, 2f);
+            EffectManager.Instance.PlayEffect(EffectType.EnemyHit, transform.position);
         }
     }
 
@@ -1027,7 +1014,7 @@ public class EnemyAdvanced : MonoBehaviour
         await UniTask.Yield(cancellationToken);
 
         // 죽음 이펙트 표시
-        await ShowDeathEffectAsync(cancellationToken);
+        ShowDeathEffect();
 
         ChangeState(EnemyState.Dead);
 
@@ -1054,13 +1041,11 @@ public class EnemyAdvanced : MonoBehaviour
         // HP 바는 타겟(적)이 비활성화되면 스스로 파괴되므로 별도 처리가 필요 없습니다.
     }
 
-    protected virtual async UniTask ShowDeathEffectAsync(CancellationToken cancellationToken)
+    protected virtual void ShowDeathEffect()
     {
-        if (deathEffect != null)
+        if (EffectManager.Instance != null)
         {
-            await UniTask.Yield(cancellationToken);
-            var effect = Instantiate(deathEffect, transform.position, Quaternion.identity);
-            Destroy(effect, 3f);
+            EffectManager.Instance.PlayEffect(EffectType.EnemyDestroy, transform.position);
         }
     }
 

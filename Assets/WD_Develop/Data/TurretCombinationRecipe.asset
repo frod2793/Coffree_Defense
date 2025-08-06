@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fc1c5eb2e0334a968ec4907795f93933, type: 3}
   m_Name: TurretCombinationRecipe
   m_EditorClassIdentifier: 
-  baseTurretPrefab: {fileID: 6189269382025376730, guid: 7690a061904673545b6eb91d014e5fea, type: 3}
+  baseTurretPrefab: {fileID: 503520471666112837, guid: 7690a061904673545b6eb91d014e5fea, type: 3}
   requiredItemPrefab: {fileID: 6719897262539787490, guid: 2ec4b62f209005d4aa41e24de8bee184, type: 3}
   resultTurretPrefab: {fileID: 8567956659253494376, guid: 4157bfb434e7446f8a56db8483b32606, type: 3}

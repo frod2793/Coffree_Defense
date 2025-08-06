@@ -54,12 +54,22 @@ public class Bullet : MonoBehaviour
     {
         if (target != null)
         {
+            // 이펙트가 생성될 위치를 미리 저장 (타겟이 즉시 파괴될 수 있으므로)
+            Vector3 hitPosition = target.position;
+
             var enemy = target.GetComponent<EnemyAdvanced>();
             if (enemy != null)
             {
                 enemy.TakeDamage(damage);
             }
+            
+            // EffectManager를 사용하여 피격 이펙트 재생
+            if (EffectManager.Instance != null)
+            {
+                EffectManager.Instance.PlayEffect(EffectType.BulletImpact, hitPosition);
+            }
         }
+        
         Debug.Log(target != null ? target.name + " 에게 " + damage + " 데미지!" : "타겟 없음");
         ReleaseBullet();
     }

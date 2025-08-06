@@ -57,6 +57,8 @@ public class NormalTurret : TurretBase
     public bool HasTarget => target != null;
     public string TargetName => target != null ? target.name : "없음";
 
+    private EffectManager effectManager;
+
     #endregion
 
     #region 유니티 생명주기
@@ -76,6 +78,8 @@ public class NormalTurret : TurretBase
         
         // 주기적 타겟 업데이트 시작
         StartPeriodicTargetUpdateAsync(normalTurretCancellationTokenSource.Token).Forget();
+
+        effectManager = FindAnyObjectByType<EffectManager>();
     }
 
     protected override void Update()
@@ -379,7 +383,8 @@ public class NormalTurret : TurretBase
         
         GameObject bulletGo = Instantiate(bulletPrefab);
         Bullet bulletComponent = bulletGo.GetComponent<Bullet>();
-
+        
+      
         if (bulletComponent == null)
         {
             Debug.LogError($"[{gameObject.name}] Bullet Prefab에 Bullet 스크립트가 없습니다.", bulletGo);
@@ -396,7 +401,11 @@ public class NormalTurret : TurretBase
         if (bullet != null)
         {
             bullet.SetActive(true);
-            
+            if (effectManager != null)
+            {
+                effectManager.PlayEffect(EffectType.TurretShoot, firePoint.position);
+            }
+
             // 총알 데미지를 현재 공격력으로 업데이트
             Bullet bulletComponent = bullet.GetComponent<Bullet>();
             if (bulletComponent != null)
