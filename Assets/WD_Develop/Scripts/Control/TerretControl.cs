@@ -69,8 +69,12 @@ public class TerretControl : MonoBehaviour
         
         // 조합 데이터 체크
         CheckCombinationData();
-        
+
         Debug.Log("[TerretControl] 초기화 완료");
+        if (EffectManager.Instance != null)
+        {
+            EffectManager.Instance.PlayEffect(EffectType.CombinationSuccess, Vector3.one);
+        }
     }
     
     // 바닥 평면 초기화 메서드
@@ -96,6 +100,8 @@ public class TerretControl : MonoBehaviour
         
         // 터렛 생성을 다음 프레임으로 분산
         await UniTask.Yield(cancellationToken);
+        
+        EffectManager.Instance.PlayEffect(EffectType.TurretSpawn,turretSpawnPoint.position);
         
         // 지정된 스폰 위치에 뼈대 터렛 프리팹을 배치
         GameObject newTurret = Instantiate(turretBonePrefab, turretSpawnPoint.position, turretSpawnPoint.rotation);
@@ -451,6 +457,7 @@ public class TerretControl : MonoBehaviour
             {
                 EffectManager.Instance.PlayEffect(EffectType.CombinationSuccess, highlightedTurret.transform.position);
             }
+         
             
             Debug.Log($"조합 성공! {highlightedTurret.name} + {selectedItemPrefab.name} = {resultPrefab.name}");
             

@@ -300,12 +300,16 @@ public class HydroWaterPress : MonoBehaviour
     }
     
     /// <summary>
-    /// 리소스 정리
+    /// 리소스 정리 (여러 번 호출되어도 안전하도록 수정)
     /// </summary>
     private void CleanupResources()
     {
-        cancellationTokenSource?.Cancel();
-        cancellationTokenSource?.Dispose();
+        if (cancellationTokenSource != null)
+        {
+            cancellationTokenSource.Cancel();
+            cancellationTokenSource.Dispose();
+            cancellationTokenSource = null;
+        }
     }
     
     #endregion

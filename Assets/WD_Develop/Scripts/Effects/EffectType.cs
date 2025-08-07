@@ -1,6 +1,7 @@
 ﻿public enum EffectType
 {
     // Turret Effects
+    TurretSpawn,
     TurretShoot,
     TurretHit,
     TurretDestroy,
