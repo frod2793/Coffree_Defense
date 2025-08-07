@@ -2,13 +2,16 @@ using UnityEngine;
 using Cysharp.Threading.Tasks;
 using System.Threading;
 using System;
+using System.Collections.Generic;
 
 /// <summary>
-/// 수압프레스 - 스폰되자마자 앞으로 이동하며 적들에게 데미지와 넉백 효과를 주는 아이템
-/// 맵 끝에 도달하면 자동으로 사라집니다
+/// 수압프레스 - 파도처럼 앞으로 나아가며 경로상의 모든 적을 한 번씩 밀어내고 피해를 주는 오브젝트
 /// </summary>
 public class HydroWaterPress : MonoBehaviour
 {
+    //todo 이펙트 관련 구성 이펙트 매니져로 편성 하고 
+    //적과 충돌시 충돌된 모든 적이 넉백및 대미지가 입도록 할것 (완료 - OnTriggerEnter 기반으로 변경)
+    
     #region 필드 및 속성
     
     [Header("수압프레스 설정")]
@@ -17,7 +20,6 @@ public class HydroWaterPress : MonoBehaviour
     [SerializeField] private float knockbackForce = 10f; // 넉백 힘
     [SerializeField] private float knockbackDuration = 0.8f; // 넉백 지속시간
     [SerializeField] private float lifeTime = 10f; // 최대 생존시간
-    [SerializeField] private float detectionRadius = 1.5f; // 적 탐지 반경
     
     [Header("시각적 효과")]
     [SerializeField] private GameObject hitEffect; // 적 공격 시 이펙트
@@ -34,8 +36,9 @@ public class HydroWaterPress : MonoBehaviour
     private float currentLifeTime;
     private CancellationTokenSource cancellationTokenSource;
     private bool isDestroyed = false;
-    
-    // 적 태그
+    private List<EnemyAdvanced> _hitEnemies; // 이미 타격한 적 목록 (중복 타격 방지)
+
+    // 상수
     private const string ENEMY_TAG = "Enemy";
     private const float MAP_BOUNDARY = 50f; // 맵 경계 (맵 크기에 따라 조정)
     
@@ -46,6 +49,7 @@ public class HydroWaterPress : MonoBehaviour
     private void Awake()
     {
         cancellationTokenSource = new CancellationTokenSource();
+        _hitEnemies = new List<EnemyAdvanced>();
         currentLifeTime = lifeTime;
         
         // 앞 방향으로 이동 설정
@@ -56,7 +60,7 @@ public class HydroWaterPress : MonoBehaviour
             audioSource = GetComponent<AudioSource>();
     }
     
-    private async void Start()
+    private void Start()
     {
         // 생성 사운드 재생
         PlaySound(shootSound);
@@ -64,9 +68,6 @@ public class HydroWaterPress : MonoBehaviour
         // 물 이펙트 시작
         if (waterEffect != null)
             waterEffect.Play();
-        
-        // 이동 및 충돌 감지 시작
-        StartMovementAndDetection(cancellationTokenSource.Token).Forget();
         
         // 생존시간 체크 시작
         StartLifeTimeCheck(cancellationTokenSource.Token).Forget();
@@ -82,7 +83,27 @@ public class HydroWaterPress : MonoBehaviour
         // 맵 경계 체크
         CheckMapBoundary();
     }
-    
+
+    /// <summary>
+    /// 트리거에 적이 들어왔을 때 한 번만 호출
+    /// </summary>
+    private void OnTriggerEnter(Collider other)
+    {
+        if (isDestroyed) return;
+
+        if (other.CompareTag(ENEMY_TAG))
+        {
+            var enemy = other.GetComponent<EnemyAdvanced>();
+            
+            // 적이 유효하고, 아직 타격한 적이 아니라면 공격
+            if (enemy != null && enemy.IsAlive && !_hitEnemies.Contains(enemy))
+            {
+                _hitEnemies.Add(enemy); // 타격 목록에 추가하여 중복 방지
+                AttackEnemy(enemy);
+            }
+        }
+    }
+
     private void OnDestroy()
     {
         CleanupResources();
@@ -119,59 +140,8 @@ public class HydroWaterPress : MonoBehaviour
     
     #endregion
     
-    #region 적 탐지 및 공격
-    
-    /// <summary>
-    /// 이동과 충돌 감지를 비동기로 처리
-    /// </summary>
-    private async UniTask StartMovementAndDetection(CancellationToken cancellationToken)
-    {
-        while (!cancellationToken.IsCancellationRequested && !isDestroyed)
-        {
-            try
-            {
-                // 주변 적 탐지
-                await DetectAndAttackEnemies(cancellationToken);
-                
-                // 0.1초마다 탐지
-                await UniTask.Delay(100, DelayType.DeltaTime, PlayerLoopTiming.Update, cancellationToken);
-            }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[{gameObject.name}] 수압프레스 이동/탐지 오류: {ex.Message}");
-                await UniTask.Delay(100, DelayType.DeltaTime, PlayerLoopTiming.Update, cancellationToken);
-            }
-        }
-    }
-    
-    /// <summary>
-    /// 주변 적들을 탐지하고 공격
-    /// </summary>
-    private async UniTask DetectAndAttackEnemies(CancellationToken cancellationToken)
-    {
-        await UniTask.Yield(cancellationToken);
-        
-        // 주변 적들 탐지
-        Collider[] enemies = Physics.OverlapSphere(transform.position, detectionRadius);
-        
-        foreach (var enemyCollider in enemies)
-        {
-            if (enemyCollider.CompareTag(ENEMY_TAG))
-            {
-                var enemy = enemyCollider.GetComponent<EnemyAdvanced>();
-                if (enemy != null && enemy.IsAlive)
-                {
-                    // 적 공격
-                    AttackEnemy(enemy);
-                }
-            }
-        }
-    }
-    
+    #region 적 공격
+
     /// <summary>
     /// 적을 공격하고 넉백 효과 적용
     /// </summary>
@@ -244,6 +214,7 @@ public class HydroWaterPress : MonoBehaviour
     {
         if (hitEffect != null)
         {
+            // TODO: 추후 EffectManager를 통해 오브젝트 풀링 방식으로 관리되도록 수정
             GameObject effect = Instantiate(hitEffect, position, Quaternion.identity);
             Destroy(effect, 2f);
         }
@@ -256,6 +227,7 @@ public class HydroWaterPress : MonoBehaviour
     {
         if (destroyEffect != null)
         {
+            // TODO: 추후 EffectManager를 통해 오브젝트 풀링 방식으로 관리되도록 수정
             GameObject effect = Instantiate(destroyEffect, transform.position, transform.rotation);
             Destroy(effect, 3f);
         }
@@ -352,10 +324,6 @@ public class HydroWaterPress : MonoBehaviour
     
     private void OnDrawGizmosSelected()
     {
-        // 탐지 범위 표시
-        Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(transform.position, detectionRadius);
-        
         // 이동 방향 표시
         Gizmos.color = Color.red;
         Gizmos.DrawRay(transform.position, moveDirection * 2f);
