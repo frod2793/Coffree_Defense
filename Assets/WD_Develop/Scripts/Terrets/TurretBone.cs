@@ -1,7 +1,4 @@
-using UnityEngine;
-
-
-    //아무 공격 기능이 존재 하지 않는 뼈대 터렛 
+//아무 공격 기능이 존재 하지 않는 뼈대 터렛 
 // 이 터렛에 아이템이 조합되면 공격가능한 터렛으로 // 변환된다.
 
 
@@ -13,8 +10,5 @@ using UnityEngine;
 
 public class TurretBone : TurretBase
 {
-    protected override void Update()
-    {
-        base.Update(); // 상태 전이를 위해 base.Update() 호출은 유지할 수 있습니다.
-    }
+ 
 }

@@ -1,76 +1,85 @@
 using UnityEngine;
 using UnityEngine.Pool;
 
+[RequireComponent(typeof(Collider))]
 public class Bullet : MonoBehaviour
 {
-    private Transform target;
     private ObjectPool<GameObject> pool;
-
+    private Vector3 moveDirection;
     private bool isReleased = false;
 
     public float speed = 70f;
-    public float damage = 10f; // 이 값은 터렛에서 설정해 줄 수 있습니다.
+    public float damage = 10f;
 
-    public void Seek(Transform _target, ObjectPool<GameObject> _pool)
+    [SerializeField]
+    private Collider collider;
+    
+    private const string ENEMY_TAG = "Enemy";
+
+    private void Awake()
     {
-        target = _target;
+        // 총알의 콜라이더는 트리거로 설정되어야 합니다.
+        collider.isTrigger = true;
+    }
+
+    /// <summary>
+    /// 총알을 초기화하고 발사 방향을 설정합니다.
+    /// </summary>
+    public void Seek(Vector3 direction, float newDamage, ObjectPool<GameObject> _pool)
+    {
         pool = _pool;
+        moveDirection = direction.normalized;
+        damage = newDamage;
         isReleased = false;
-        // 일정 시간 후 자동 반환 (예: 5초)
+        
+        // 5초 후 자동 반환
         AutoReleaseAfterDelay(5f).Forget();
     }
 
     private async Cysharp.Threading.Tasks.UniTaskVoid AutoReleaseAfterDelay(float delay)
     {
         await Cysharp.Threading.Tasks.UniTask.Delay((int)(delay * 1000));
-        if (!isReleased && gameObject.activeInHierarchy)
-        {
-            ReleaseBullet();
-        }
+        ReleaseBullet();
     }
 
     void Update()
     {
-        if (target == null)
-        {
-            ReleaseBullet();
-            return;
-        }
-
-        Vector3 dir = target.position - transform.position;
+        // 지정된 방향으로 직진
         float distanceThisFrame = speed * Time.deltaTime;
-
-        // 목표물에 도달했는지 확인
-        if (dir.magnitude <= distanceThisFrame)
-        {
-            HitTarget();
-            return;
-        }
-
-        transform.Translate(dir.normalized * distanceThisFrame, Space.World);
+        transform.Translate(moveDirection * distanceThisFrame, Space.World);
     }
 
-    void HitTarget()
+    void OnTriggerEnter(Collider other)
     {
-        if (target != null)
+        // 적과 충돌했는지 태그로 확인
+        if (other.CompareTag(ENEMY_TAG))
         {
-            // 이펙트가 생성될 위치를 미리 저장 (타겟이 즉시 파괴될 수 있으므로)
-            Vector3 hitPosition = target.position;
+            HitTarget(other.gameObject);
+        }
+        // 적이 아닌 다른 것에 부딪혀도 총알은 사라지도록 처리 (예: 벽)
+        else
+        {
+            ReleaseBullet();
+        }
+    }
 
-            var enemy = target.GetComponent<EnemyAdvanced>();
+    void HitTarget(GameObject targetObject)
+    {
+        if (targetObject != null)
+        {
+            var enemy = targetObject.GetComponent<EnemyAdvanced>();
             if (enemy != null)
             {
                 enemy.TakeDamage(damage);
             }
             
-            // EffectManager를 사용하여 피격 이펙트 재생
             if (EffectManager.Instance != null)
-            {
-                EffectManager.Instance.PlayEffect(EffectType.BulletImpact, hitPosition);
+            { 
+                // 충돌 지점에서 이펙트 재생
+                EffectManager.Instance.PlayEffect(EffectType.BulletImpact, transform.position);
             }
         }
         
-        Debug.Log(target != null ? target.name + " 에게 " + damage + " 데미지!" : "타겟 없음");
         ReleaseBullet();
     }
 
@@ -78,18 +87,17 @@ public class Bullet : MonoBehaviour
     {
         if (isReleased) return;
         isReleased = true;
-        if (gameObject.activeInHierarchy && pool != null)
+
+        if (pool != null && gameObject.activeInHierarchy)
         {
             pool.Release(gameObject);
         }
-        else
-        {
-            // 풀 미지정 시 비활성화(씬에 남아도 GC 없음)
+        else if (gameObject.activeInHierarchy)
+        { 
             gameObject.SetActive(false);
         }
     }
 
-    // 카메라의 시야에서 벗어나면 호출되는 함수
     void OnBecameInvisible()
     {
         ReleaseBullet();

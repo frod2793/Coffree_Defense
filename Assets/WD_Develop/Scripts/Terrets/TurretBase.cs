@@ -3,19 +3,17 @@ using EPOOutline;
 using Cysharp.Threading.Tasks;
 using System.Threading;
 using System.Collections.Generic;
+using DG.Tweening;
 
 /// <summary>
-/// 터렛의 기본 기능을 정의하는 베이스 클래스
-/// UniTask 기반 비동기 처리로 최적화된 성능을 제공합니다.
+/// 터렛의 기본 기능을 정의하는 베이스 클래스.
+/// DOTween을 사용한 안정적인 회전과 UniTask 기반 비동기 처리를 사용합니다.
 /// </summary>
 [RequireComponent(typeof(Outlinable))]
 public class TurretBase : MonoBehaviour
 {
     #region 열거형 및 상수
     
-    /// <summary>
-    /// 터렛의 상태를 정의하는 열거형
-    /// </summary>
     public enum TerretState 
     { 
         Placement,  // 배치 중
@@ -25,40 +23,48 @@ public class TurretBase : MonoBehaviour
         Combining   // 조합 중
     }
     
-    // 성능 최적화를 위한 상수
     private const float ActivationDelay = 2.0f;
     private const float DefaultOutlineWidth = 5f;
     private const float CombinationOutlineWidth = 6f;
-    private const int DamageDelayMs = 16; // 약 1프레임
     
     #endregion
 
     #region 필드 및 속성
 
-    [Header("터렛 기본 스탯")]
+    [Header("터렛 공통 스탯")]
     [SerializeField] protected float attackPower = 10f;
     [SerializeField] protected float attackSpeed = 1f;
     [SerializeField] private float maxHp = 100f;
     [SerializeField] private float currentHp = 100f;
+    [SerializeField] protected float range = 15f;
+    
+    [Header("회전 설정 (DOTween)")]
+    [Tooltip("목표 각도까지 회전하는 데 걸리는 시간(초)입니다. 낮을수록 빠릅니다.")]
+    [SerializeField] protected float rotationDuration = 0.15f; // 회전 속도를 약간 높여 반응성을 개선
+
+    [Header("터렛 공통 설정")]
+    [SerializeField] protected Transform turretHead;
+    [SerializeField] protected string enemyTag = "Enemy";
+    [SerializeField] protected float targetUpdateInterval = 0.5f;
 
     [Header("시각적 효과")]
-    [SerializeField] private Vector3 hpBarOffset = new Vector3(0, -1.5f, 0); // 터렛 발밑에 HP바가 표시되도록 오프셋 조정
+    [SerializeField] private Vector3 hpBarOffset = new Vector3(0, -1.5f, 0);
 
-    // 상태 관리
+    // 상태 및 타겟 관리
     public TerretState currentState { get; private set; }
+    protected Transform target;
     
     // 컴포넌트 캐시
     private Outlinable outlineComponent;
     private HPBarController hpBarController;
-    private InGameUIManager inGameUIManager; // UI 매니저 캐시
+    private InGameUIManager inGameUIManager;
 
-    // UniTask 관련
+    // UniTask 및 회전 관련
     private CancellationTokenSource cancellationTokenSource;
     private bool isInitialized;
-    
-    // 성능 최적화를 위한 캐시
-    private static readonly Dictionary<Color, (Color color, float width)> OutlineParametersCache = 
-        new Dictionary<Color, (Color, float)>();
+    private Quaternion initialLocalRotation; // 터렛의 초기 로컬 회전값
+
+    private static readonly Dictionary<Color, (Color color, float width)> OutlineParametersCache = new();
     
     // 공개 속성
     public float AttackPower => attackPower;
@@ -68,6 +74,7 @@ public class TurretBase : MonoBehaviour
     public float HpPercentage => maxHp > 0 ? currentHp / maxHp : 0f;
     public bool IsAlive => currentState != TerretState.Destroyed && currentHp > 0;
     public bool CanAttack => currentState == TerretState.Active && IsAlive;
+    public bool HasTarget => target != null;
 
     #endregion
 
@@ -81,20 +88,24 @@ public class TurretBase : MonoBehaviour
     protected virtual async void Start()
     {
         cancellationTokenSource = new CancellationTokenSource();
+        InitializeRotation();
         await InitializeAsync(cancellationTokenSource.Token);
     }
 
-    protected virtual void Update()
+    protected virtual void LateUpdate()
     {
         if (!isInitialized || !ShouldUpdate()) return;
-        
-        // 공격 로직은 자식 클래스에서 구현
-        UpdateTurret();
+        RotateToTarget();
     }
 
     void OnDestroy()
     {
         CleanupResources();
+    }
+
+    void OnDisable()
+    {
+        if (turretHead != null) turretHead.DOKill();
     }
 
     #endregion
@@ -103,17 +114,16 @@ public class TurretBase : MonoBehaviour
 
     private void InitializeComponents()
     {
-        // 컴포넌트 캐시
         outlineComponent = GetComponent<Outlinable>();
-        if (outlineComponent != null)
-        {
-            outlineComponent.enabled = false;
-        }
-        
-        inGameUIManager = FindAnyObjectByType<InGameUIManager>(); // UI 매니저 찾기
-
-        // HP 초기화
+        if (outlineComponent != null) outlineComponent.enabled = false;
+        inGameUIManager = FindAnyObjectByType<InGameUIManager>();
         currentHp = maxHp;
+    }
+
+    private void InitializeRotation()
+    {
+        if (turretHead == null) return;
+        initialLocalRotation = turretHead.localRotation;
     }
 
     private async UniTask InitializeAsync(CancellationToken cancellationToken)
@@ -121,18 +131,11 @@ public class TurretBase : MonoBehaviour
         try
         {
             await UniTask.Yield(cancellationToken);
-            
             currentState = TerretState.Placement;
-            
-            // 필수 컴포넌트 검증
             ValidateRequiredComponents();
-            
-            // HP 바 생성 요청
             SetupHPBar();
-
             isInitialized = true;
-            
-            Debug.Log($"[{gameObject.name}] 터렛 초기화 완료");
+            StartPeriodicTargetUpdateAsync(cancellationToken).Forget();
         }
         catch (System.Exception ex)
         {
@@ -142,59 +145,76 @@ public class TurretBase : MonoBehaviour
 
     private void ValidateRequiredComponents()
     {
-        if (outlineComponent == null)
-        {
-            Debug.LogWarning($"[{gameObject.name}] Outlinable 컴포넌트가 없습니다.");
-        }
-        if (inGameUIManager == null)
-        {
-            Debug.LogError("[TurretBase] InGameUIManager를 씬에서 찾을 수 없습니다!");
-        }
+        if (inGameUIManager == null) Debug.LogError("[TurretBase] InGameUIManager를 씬에서 찾을 수 없습니다!");
+        if (turretHead == null) Debug.LogWarning($"[{gameObject.name}] Turret Head가 할당되지 않았습니다.", this);
     }
 
     #endregion
 
-    #region 상태 관리
+    #region 상태 및 업데이트 관리
 
-    private bool ShouldUpdate()
+    protected bool ShouldUpdate()
     {
         return currentState != TerretState.Placement && 
                currentState != TerretState.Destroyed && 
                currentState != TerretState.Combining;
     }
 
-    protected virtual void UpdateTurret()
+    /// <summary>
+    /// 목표를 향해 터렛을 회전시킵니다. 이 함수는 LateUpdate에서 호출되어 최종 위치를 기준으로 계산합니다.
+    /// 로컬 회전을 사용하여 부모 오브젝트의 회전에 영향을 받지 않고, X/Y축 회전을 0으로 유지합니다.
+    /// </summary>
+    protected virtual void RotateToTarget()
     {
-        // 자식 클래스에서 구체적인 업데이트 로직 구현
+        if (turretHead == null) return;
+
+        Quaternion targetLocalRotation;
+
+        if (target != null)
+        {
+            // 목표 방향을 월드 좌표에서 구한 뒤, 터렛 헤드의 부모를 기준으로 하는 로컬 좌표로 변환합니다.
+            // 이렇게 하면 부모의 회전에 관계없이 자식(터렛 헤드)의 로컬 회전만을 제어할 수 있습니다.
+            Vector3 directionToTargetWorld = target.position - turretHead.position;
+            Vector3 directionToTargetLocal = turretHead.parent.InverseTransformDirection(directionToTargetWorld);
+
+            if (directionToTargetLocal.sqrMagnitude > 0.001f)
+            {
+                // 로컬 방향 벡터를 사용하여 Z축 회전 각도를 계산합니다.
+                float angle = Mathf.Atan2(directionToTargetLocal.y, directionToTargetLocal.x) * Mathf.Rad2Deg;
+                
+                // X, Y축은 0으로 고정한 채 Z축만 회전하는 로컬 회전값을 생성합니다.
+                // +90f 보정은 터렛 스프라이트의 '앞' 방향이 아래(-Y)를 향하고 있을 경우를 위한 것입니다.
+                targetLocalRotation = Quaternion.Euler(0, 0, angle + 90f);
+            }
+            else
+            {
+                targetLocalRotation = turretHead.localRotation; // 목표가 너무 가까우면 현재 회전 유지
+            }
+        }
+        else
+        {
+            // 목표가 없으면 초기 로컬 회전으로 복귀
+            targetLocalRotation = initialLocalRotation;
+        }
+
+        // Slerp를 사용하여 현재 로컬 회전에서 목표 로컬 회전으로 부드럽게 보간합니다.
+        turretHead.localRotation = Quaternion.Slerp(turretHead.localRotation, targetLocalRotation, Time.deltaTime * (1.0f / rotationDuration));
     }
 
-    /// <summary>
-    /// 터렛 상태를 안전하게 변경합니다.
-    /// </summary>
+
     protected virtual void ChangeState(TerretState newState)
     {
         if (currentState == newState) return;
-        
         var previousState = currentState;
         currentState = newState;
-        
         OnStateChanged(previousState, newState);
     }
 
-    /// <summary>
-    /// 외부에서 터렛을 배치 모드로 설정합니다.
-    /// </summary>
     public void SetPlacementMode()
     {
-        if (CanBeMoved())
-        {
-            ChangeState(TerretState.Placement);
-        }
+        if (CanBeMoved()) ChangeState(TerretState.Placement);
     }
 
-    /// <summary>
-    /// 외부에서 터렛 상태를 강제로 설정합니다. (신중하게 사용)
-    /// </summary>
     public void ForceSetState(TerretState newState)
     {
         ChangeState(newState);
@@ -206,60 +226,63 @@ public class TurretBase : MonoBehaviour
     }
 
     #endregion
+    
+    #region 타겟팅 시스템
+
+    private async UniTask StartPeriodicTargetUpdateAsync(CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested && this != null)
+        {
+            await UpdateTargetAsync(cancellationToken);
+            await UniTask.Delay((int)(targetUpdateInterval * 1000), cancellationToken: cancellationToken);
+        }
+    }
+
+    private async UniTask UpdateTargetAsync(CancellationToken cancellationToken)
+    {
+        await UniTask.Yield(cancellationToken);
+        GameObject[] enemies = GameObject.FindGameObjectsWithTag(enemyTag);
+        float shortestDistance = Mathf.Infinity;
+        Transform nearestEnemy = null;
+
+        foreach (GameObject enemy in enemies)
+        {
+            if (enemy == null) continue;
+            float distanceToEnemy = Vector3.Distance(transform.position, enemy.transform.position);
+            if (distanceToEnemy < shortestDistance && distanceToEnemy <= range)
+            {
+                shortestDistance = distanceToEnemy;
+                nearestEnemy = enemy.transform;
+            }
+        }
+        target = nearestEnemy;
+    }
+
+    #endregion
 
     #region 아웃라인 시스템
 
-    /// <summary>
-    /// 터렛의 아웃라인을 설정합니다. (성능 최적화된 버전)
-    /// </summary>
     public void SetOutline(bool active, Color? color = null, float width = DefaultOutlineWidth)
     {
         if (outlineComponent == null) return;
-
         outlineComponent.enabled = active;
-        
-        if (active && color.HasValue)
-        {
-            SetOutlineParameters(color.Value, width);
-        }
+        if (active && color.HasValue) SetOutlineParameters(color.Value, width);
     }
 
     private void SetOutlineParameters(Color color, float width)
     {
-        // 아웃라인 파라미터 캐싱으로 성능 최적화
         if (!OutlineParametersCache.TryGetValue(color, out var parameters))
         {
             parameters = (color, width);
             OutlineParametersCache[color] = parameters;
         }
-
         outlineComponent.OutlineParameters.Color = color;
         outlineComponent.OutlineParameters.DilateShift = width;
     }
 
-    /// <summary>
-    /// 드래그 중 아웃라인 활성화 (조합 가능한 경우)
-    /// </summary>
-    public void EnableDragOutline()
-    {
-        SetOutline(true, Color.green);
-    }
-
-    /// <summary>
-    /// 조합 준비 상태 아웃라인 활성화
-    /// </summary>
-    public void EnableCombinationReadyOutline()
-    {
-        SetOutline(true, Color.yellow, 3f);
-    }
-
-    /// <summary>
-    /// 아웃라인 비활성화
-    /// </summary>
-    public void DisableOutline()
-    {
-        SetOutline(false);
-    }
+    public void EnableDragOutline() => SetOutline(true, Color.green);
+    public void EnableCombinationReadyOutline() => SetOutline(true, Color.yellow, 3f);
+    public void DisableOutline() => SetOutline(false);
 
     #endregion
 
@@ -271,362 +294,117 @@ public class TurretBase : MonoBehaviour
         {
             ActivateAfterDelayAsync(ActivationDelay, cancellationTokenSource.Token).Forget();
         }
-        else if (cancellationTokenSource == null)
-        {
-            Debug.LogWarning($"[{gameObject.name}] CancellationTokenSource가 null입니다. 터렛이 초기화되지 않았을 수 있습니다.");
-        }
     }
 
-    /// <summary>
-    /// 지연 후 터렛을 활성화합니다. (비동기 버전)
-    /// </summary>
     private async UniTask ActivateAfterDelayAsync(float delay, CancellationToken cancellationToken)
     {
         try
         {
-            await UniTask.Delay((int)(delay * 1000), DelayType.DeltaTime, 
-                PlayerLoopTiming.Update, cancellationToken);
-            
-            // 오브젝트가 파괴되었는지 안전하게 확인 (MissingReferenceException 방지)
-            if (!IsObjectValid() || cancellationToken.IsCancellationRequested)
-            {
-                Debug.Log("터렛 오브젝트가 파괴되어 활성화를 취소합니다.");
-                return;
-            }
-            
-            if (IsAlive)
-            {
-                ChangeState(TerretState.Idle);
-                OnTurretActivated();
-            }
+            await UniTask.Delay((int)(delay * 1000), DelayType.DeltaTime, PlayerLoopTiming.Update, cancellationToken);
+            if (!IsObjectValid() || cancellationToken.IsCancellationRequested) return;
+            if (IsAlive) ChangeState(TerretState.Idle);
         }
-        catch (System.OperationCanceledException)
-        {
-            Debug.Log("터렛 활성화가 취소되었습니다.");
-        }
-        catch (System.Exception ex)
-        {
-            // MissingReferenceException이나 기타 예외 처리
-            if (ex is MissingReferenceException)
-            {
-                Debug.Log("터렛 오브젝트가 이미 파괴되었습니다.");
-            }
-            else
-            {
-                Debug.LogError($"터렛 활성화 중 오류 발생: {ex.Message}");
-            }
-        }
+        catch (System.OperationCanceledException) { }
     }
     
-    /// <summary>
-    /// 오브젝트가 여전히 유효한지 안전하게 확인합니다.
-    /// </summary>
     private bool IsObjectValid()
     {
-        try
-        {
-            // this와 gameObject에 접근해서 예외가 발생하면 오브젝트가 파괴된 것
-            return this != null && gameObject != null && gameObject.activeInHierarchy;
-        }
-        catch (MissingReferenceException)
-        {
-            return false;
-        }
-        catch (System.Exception)
-        {
-            return false;
-        }
-    }
-
-    protected virtual void OnTurretActivated()
-    {
-        Debug.Log($"[{gameObject.name}] 터렛 활성화!");
+        return this != null && gameObject != null;
     }
 
     #endregion
 
     #region 데미지 및 파괴 시스템
 
-    /// <summary>
-    /// 터렛이 데미지를 받습니다. (비동기 버전)
-    /// </summary>
-    public async UniTask TakeDamageAsync(float damage, CancellationToken cancellationToken = default)
-    {
-        if (currentState == TerretState.Destroyed || damage <= 0) return;
-
-        var previousHp = currentHp;
-        currentHp = Mathf.Max(0, currentHp - damage);
-        
-        // 데미지 처리를 다음 프레임으로 분산
-        await UniTask.Delay(DamageDelayMs, DelayType.DeltaTime, 
-            PlayerLoopTiming.Update, cancellationToken);
-        
-        OnDamageTaken(damage, previousHp, currentHp);
-        
-        if (currentHp <= 0)
-        {
-            await DestroyTurretAsync(cancellationToken);
-        }
-    }
-
-    /// <summary>
-    /// 터렛이 데미지를 받습니다. (동기 버전 - 하위 호환성)
-    /// </summary>
     public void TakeDamage(float damage)
     {
         if (currentState == TerretState.Destroyed || damage <= 0) return;
-
-        var previousHp = currentHp;
         currentHp = Mathf.Max(0, currentHp - damage);
-        
-        OnDamageTaken(damage, previousHp, currentHp);
-        
-        if (currentHp <= 0)
-        {
-            DestroyTurret();
-        }
+        hpBarController?.UpdateHP(currentHp, maxHp);
+        if (currentHp <= 0) DestroyTurret();
     }
 
-    /// <summary>
-    /// HP를 회복합니다.
-    /// </summary>
-    public void Heal(float amount)
-    {
-        if (currentState == TerretState.Destroyed || amount <= 0) return;
-
-        var previousHp = currentHp;
-        currentHp = Mathf.Min(maxHp, currentHp + amount);
-        
-        OnHealed(amount, previousHp, currentHp);
-    }
-
-    protected virtual void OnDamageTaken(float damage, float previousHp, float newHp)
-    {
-        Debug.Log($"[{gameObject.name}] 데미지 {damage:F1} 받음. HP: {previousHp:F1} → {newHp:F1}");
-        // HP 바 업데이트
-        hpBarController?.UpdateHP(newHp, maxHp);
-    }
-
-    protected virtual void OnHealed(float amount, float previousHp, float newHp)
-    {
-        Debug.Log($"[{gameObject.name}] 회복 {amount:F1}. HP: {previousHp:F1} → {newHp:F1}");
-        // HP 바 업데이트
-        hpBarController?.UpdateHP(newHp, maxHp);
-    }
-
-    /// <summary>
-    /// 터렛을 파괴합니다. (비동기 버전)
-    /// </summary>
-    private async UniTask DestroyTurretAsync(CancellationToken cancellationToken)
-    {
-        ChangeState(TerretState.Destroyed);
-        
-        PlayDestructionEffect();
-        
-        OnTurretDestroyed();
-        
-        await UniTask.Yield(cancellationToken); // 이펙트가 재생될 시간을 줍니다.
-        gameObject.SetActive(false);
-    }
-
-    /// <summary>
-    /// 터렛을 파괴합니다. (동기 버전 - 하위 호환성)
-    /// </summary>
     private void DestroyTurret()
     {
         ChangeState(TerretState.Destroyed);
-        
-        PlayDestructionEffect();
-        
-        OnTurretDestroyed();
-        
+        if (EffectManager.Instance != null) EffectManager.Instance.PlayEffect(EffectType.TurretDestroy, transform.position);
         gameObject.SetActive(false);
-    }
-
-    private void PlayDestructionEffect()
-    {
-        if (EffectManager.Instance != null)
-        {
-            EffectManager.Instance.PlayEffect(EffectType.TurretDestroy, transform.position);
-        }
-    }
-
-    protected virtual void OnTurretDestroyed()
-    {
-        Debug.Log($"[{gameObject.name}] 터렛 파괴됨");
-        // HP 바는 타겟이 사라지면 스스로 파괴되므로 별도 처리가 필요 없습니다.
     }
 
     #endregion
 
     #region HP 바 시스템
 
-    /// <summary>
-    /// HP 바를 설정하고 UI 매니저에 생성을 요청합니다.
-    /// </summary>
     private void SetupHPBar()
     {
         if (inGameUIManager == null) return;
-
-        // UI 매니저에게 터렛용 HP 바 생성을 요청합니다.
         hpBarController = inGameUIManager.RequestTurretHPBar(transform, hpBarOffset);
-
-        // 초기 HP 값을 설정합니다.
-        if (hpBarController != null)
-        {
-            hpBarController.UpdateHP(currentHp, maxHp);
-        }
+        if (hpBarController != null) hpBarController.UpdateHP(currentHp, maxHp);
     }
 
     #endregion
 
     #region 이동 및 조합 시스템
 
-    /// <summary>
-    /// 터렛이 현재 이동 가능한 상태인지 확인합니다.
-    /// </summary>
-    public bool CanBeMoved()
-    {
-        return currentState != TerretState.Combining && 
-               currentState != TerretState.Destroyed &&
-               IsAlive;
-    }
+    public bool CanBeMoved() => currentState != TerretState.Combining && currentState != TerretState.Destroyed && IsAlive;
 
-    /// <summary>
-    /// 조합 모드를 시작합니다. (비동기 버전)
-    /// </summary>
-    public async UniTask StartCombiningAsync(CancellationToken cancellationToken = default)
+    public async UniTask StartCombiningAsync(CancellationToken cancellationToken)
     {
         if (!CanStartCombining()) return;
-            
         ChangeState(TerretState.Combining);
-        
-        // 조합 효과 표시를 다음 프레임으로 분산
-        await UniTask.Yield(cancellationToken);
-        
         if (EffectManager.Instance != null) EffectManager.Instance.PlayLoopingEffect(EffectType.CombinationHighlight, transform, this);
         SetOutline(true, Color.cyan, CombinationOutlineWidth);
-        
-        OnCombiningStarted();
-    }
-
-    /// <summary>
-    /// 조합 모드를 시작합니다. (동기 버전 - 하위 호환성)
-    /// </summary>
-    public void StartCombining()
-    {
-        if (!CanStartCombining()) return;
-            
-        ChangeState(TerretState.Combining);
-        
-        if (EffectManager.Instance != null) EffectManager.Instance.PlayLoopingEffect(EffectType.CombinationHighlight, transform, this);
-        SetOutline(true, Color.cyan, CombinationOutlineWidth);
-        
-        OnCombiningStarted();
-    }
-
-    private bool CanStartCombining()
-    {
-        return currentState != TerretState.Combining && 
-               currentState != TerretState.Destroyed &&
-               IsAlive;
-    }
-
-    protected virtual void OnCombiningStarted()
-    {
-        Debug.Log($"[{gameObject.name}] 조합 모드 시작");
-    }
-    
-    /// <summary>
-    /// 조합 모드를 종료합니다. (비동기 버전)
-    /// </summary>
-    public async UniTask EndCombiningAsync(CancellationToken cancellationToken = default)
-    {
-        if (currentState != TerretState.Combining) return;
-            
-        ChangeState(TerretState.Idle);
-        
-        // 조합 효과 처리를 다음 프레임으로 분산
         await UniTask.Yield(cancellationToken);
-        
-        if (EffectManager.Instance != null) EffectManager.Instance.StopLoopingEffect(this);
-        DisableOutline();
-        
-        OnCombiningEnded();
     }
 
-    /// <summary>
-    /// 조합 모드를 종료합니다. (동기 버전 - 하위 호환성)
-    /// </summary>
-    public void EndCombining()
+    private bool CanStartCombining() => currentState != TerretState.Combining && currentState != TerretState.Destroyed && IsAlive;
+
+    public async UniTask EndCombiningAsync(CancellationToken cancellationToken)
     {
         if (currentState != TerretState.Combining) return;
-            
         ChangeState(TerretState.Idle);
-        
         if (EffectManager.Instance != null) EffectManager.Instance.StopLoopingEffect(this);
         DisableOutline();
-        
-        OnCombiningEnded();
-    }
-
-    protected virtual void OnCombiningEnded()
-    {
-        Debug.Log($"[{gameObject.name}] 조합 모드 종료");
-    }
-
-    /// <summary>
-    /// 아이템과 조합 가능한지 확인합니다.
-    /// </summary>
-    public bool CanCombineWithItem(ItemA item)
-    {
-        if (item == null || !CanStartCombining()) return false;
-        
-        // TurretCombinationManager를 통해 조합 가능성 확인
-        var combinationManager = FindAnyObjectByType<TurretCombinationManager>();
-        return combinationManager?.CanCombine(this, item) ?? false;
+        await UniTask.Yield(cancellationToken);
     }
 
     #endregion
 
     #region 유틸리티 메서드
 
-    /// <summary>
-    /// 터렛의 스탯을 업그레이드합니다.
-    /// </summary>
     public virtual void UpgradeStats(float attackPowerMultiplier = 1f, float attackSpeedMultiplier = 1f, float hpMultiplier = 1f)
     {
         attackPower *= attackPowerMultiplier;
         attackSpeed *= attackSpeedMultiplier;
-        
         var hpIncrease = maxHp * (hpMultiplier - 1f);
         maxHp *= hpMultiplier;
-        currentHp += hpIncrease; // 현재 HP도 비례적으로 증가
-        
-        Debug.Log($"[{gameObject.name}] 스탯 업그레이드 완료");
-    }
-
-    /// <summary>
-    /// 터렛의 현재 상태 정보를 반환합니다.
-    /// </summary>
-    public string GetStatusInfo()
-    {
-        return $"상태: {currentState}, HP: {currentHp:F1}/{maxHp:F1}, 공격력: {attackPower:F1}, 공격속도: {attackSpeed:F1}";
+        currentHp += hpIncrease;
     }
 
     #endregion
 
     #region 리소스 정리
 
-    /// <summary>
-    /// 리소스를 정리합니다.
-    /// </summary>
     private void CleanupResources()
     {
         cancellationTokenSource?.Cancel();
         cancellationTokenSource?.Dispose();
+    }
+
+    #endregion
+    
+    #region 기즈모
+
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, range);
         
-        Debug.Log($"[{gameObject.name}] 리소스 정리 완료");
+        if (target != null)
+        {
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawLine(turretHead.position, target.position);
+        }
     }
 
     #endregion

@@ -1155,6 +1155,69 @@ MonoBehaviour:
     - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
       count: 5
       spawnInterval: 0
+  - waveNumber: 0
+    spawnPoint: {x: 0, y: 0, z: 0}
+    enemyGroups:
+    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
+      count: 5
+      spawnInterval: 0
+    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
+      count: 5
+      spawnInterval: 0
+  - waveNumber: 0
+    spawnPoint: {x: 0, y: 0, z: 0}
+    enemyGroups:
+    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
+      count: 5
+      spawnInterval: 0
+    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
+      count: 5
+      spawnInterval: 0
+  - waveNumber: 0
+    spawnPoint: {x: 0, y: 0, z: 0}
+    enemyGroups:
+    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
+      count: 5
+      spawnInterval: 0
+    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
+      count: 5
+      spawnInterval: 0
+  - waveNumber: 0
+    spawnPoint: {x: 0, y: 0, z: 0}
+    enemyGroups:
+    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
+      count: 5
+      spawnInterval: 0
+    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
+      count: 5
+      spawnInterval: 0
+  - waveNumber: 0
+    spawnPoint: {x: 0, y: 0, z: 0}
+    enemyGroups:
+    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
+      count: 5
+      spawnInterval: 0
+    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
+      count: 5
+      spawnInterval: 0
+  - waveNumber: 0
+    spawnPoint: {x: 0, y: 0, z: 0}
+    enemyGroups:
+    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
+      count: 5
+      spawnInterval: 0
+    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
+      count: 5
+      spawnInterval: 0
+  - waveNumber: 0
+    spawnPoint: {x: 0, y: 0, z: 0}
+    enemyGroups:
+    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
+      count: 5
+      spawnInterval: 0
+    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
+      count: 5
+      spawnInterval: 0
   uiManager: {fileID: 2079917346}
   turretControl: {fileID: 1800508100}
   spawnManager: {fileID: 961492029}
@@ -1689,15 +1752,15 @@ MonoBehaviour:
   attackSpeed: 1
   maxHp: 100
   currentHp: 100
+  range: 15
+  turnSpeed: 10
+  turretHead: {fileID: 1799743826}
+  enemyTag: Enemy
+  targetUpdateInterval: 0.5
   hpBarOffset: {x: 0, y: -1.5, z: 0}
   bulletPrefab: {fileID: 9185332407487830785, guid: 6aa837a1bf957443fb6a3e3b11e0d763, type: 3}
   firePoint: {fileID: 1232915909}
-  turretHead: {fileID: 1799743826}
-  range: 15
-  turnSpeed: 10
   fireRate: 10
-  enemyTag: Enemy
-  targetUpdateInterval: 0.5
   bulletPoolMaxSize: 20
 --- !u!65 &1055561224
 BoxCollider:
@@ -2858,11 +2921,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2954300113465931911, guid: 4157bfb434e7446f8a56db8483b32606, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5636764226099140884, guid: 4157bfb434e7446f8a56db8483b32606, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -3.97
+      value: -2.783
       objectReference: {fileID: 0}
     - target: {fileID: 5636764226099140884, guid: 4157bfb434e7446f8a56db8483b32606, type: 3}
       propertyPath: m_LocalPosition.y
@@ -3183,7 +3246,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   turretBonePrefab: {fileID: 7483472109578787206, guid: 7690a061904673545b6eb91d014e5fea, type: 3}
   turretSpawnPoint: {fileID: 2019644341}
-  combinationData: {fileID: 11400000, guid: c61d82bdcc4352f419d614326e122859, type: 2}
+  combinationRecipe: {fileID: 11400000, guid: 614e2af73a929de4d91d3e8862b8327d, type: 2}
   combinedTurretSpawnHeight: 0
 --- !u!1 &1854971456
 GameObject:
@@ -4138,6 +4201,63 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 1017251120200596212, guid: 6c190868dd47c49af94fa922d4bdbb1c, type: 3}
   m_PrefabInstance: {fileID: 2766672367429176803}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &9071967909244813120
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 1093165704590219253, guid: 6aa837a1bf957443fb6a3e3b11e0d763, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -12.133351
+      objectReference: {fileID: 0}
+    - target: {fileID: 1093165704590219253, guid: 6aa837a1bf957443fb6a3e3b11e0d763, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -13.9281
+      objectReference: {fileID: 0}
+    - target: {fileID: 1093165704590219253, guid: 6aa837a1bf957443fb6a3e3b11e0d763, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 2.75341
+      objectReference: {fileID: 0}
+    - target: {fileID: 1093165704590219253, guid: 6aa837a1bf957443fb6a3e3b11e0d763, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1093165704590219253, guid: 6aa837a1bf957443fb6a3e3b11e0d763, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1093165704590219253, guid: 6aa837a1bf957443fb6a3e3b11e0d763, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1093165704590219253, guid: 6aa837a1bf957443fb6a3e3b11e0d763, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1093165704590219253, guid: 6aa837a1bf957443fb6a3e3b11e0d763, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1093165704590219253, guid: 6aa837a1bf957443fb6a3e3b11e0d763, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1093165704590219253, guid: 6aa837a1bf957443fb6a3e3b11e0d763, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9185332407487830785, guid: 6aa837a1bf957443fb6a3e3b11e0d763, type: 3}
+      propertyPath: m_Name
+      value: Bullet
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 6aa837a1bf957443fb6a3e3b11e0d763, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -4156,3 +4276,4 @@ SceneRoots:
   - {fileID: 1863714418}
   - {fileID: 85797978}
   - {fileID: 754968040}
+  - {fileID: 9071967909244813120}

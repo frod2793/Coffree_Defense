@@ -3,23 +3,27 @@ using UnityEngine.Pool;
 using Cysharp.Threading.Tasks;
 using System.Threading;
 
+/// <summary>
+/// 더블 배럴 터렛 클래스 - 두 개의 포신에서 순차적으로 총알을 발사합니다.
+/// </summary>
 [RequireComponent(typeof(BoxCollider))]
-public class NormalTurret : TurretBase
+public class DoubleShotTurret : TurretBase
 {
     #region 필드 및 속성
 
-    [Header("일반 터렛 전용 설정")]
+    [Header("더블샷 터렛 전용 설정")]
     [SerializeField] private GameObject bulletPrefab;
-    [SerializeField] private Transform firePoint;
+    [SerializeField] private Transform[] firePoints;
+    [SerializeField] private float delayBetweenShots = 0.1f;
     [SerializeField] private float fireRate = 1f;
-    
+
     [Header("성능 설정")]
-    [SerializeField] private int bulletPoolMaxSize = 20;
+    [SerializeField] private int bulletPoolMaxSize = 40;
     
     private float fireCountdown;
     private ObjectPool<GameObject> bulletPool;
-    private CancellationTokenSource normalTurretCancellationTokenSource;
-    private bool isNormalTurretInitialized;
+    private CancellationTokenSource turretCancellationTokenSource;
+    private bool isTurretInitialized;
 
     #endregion
 
@@ -28,27 +32,26 @@ public class NormalTurret : TurretBase
     protected override void Start()
     {
         base.Start();
-        normalTurretCancellationTokenSource = new CancellationTokenSource();
+        turretCancellationTokenSource = new CancellationTokenSource();
         ValidateComponents();
-        InitializeNormalTurretAsync(normalTurretCancellationTokenSource.Token).Forget();
+        InitializeTurretAsync(turretCancellationTokenSource.Token).Forget();
     }
 
-    // override 키워드를 제거합니다. TurretBase에 virtual Update가 정의되어 있지 않기 때문입니다.
-    // 각 터렛은 자신만의 업데이트 로직을 독립적으로 가집니다.
+    // TurretBase에는 Update()가 없으므로 override하지 않습니다.
+    // DoubleShotTurret의 독립적인 업데이트 로직을 구현합니다.
     protected void Update()
     {
-        // base.Update(); // 부모 클래스에 Update가 없으므로 호출할 수 없습니다.
-        if (!isNormalTurretInitialized || !ShouldUpdate()) return;
+        if (!isTurretInitialized || !ShouldUpdate()) return;
         
-        // TurretBase.Update()에서 RotateToTarget()이 이미 호출됨
+        // TurretBase의 LateUpdate에서 회전이 처리되므로, 여기서는 공격 로직만 담당합니다.
         UpdateFireCountdown();
         UpdateAttackLogic();
     }
 
     void OnDestroy()
     {
-        normalTurretCancellationTokenSource?.Cancel();
-        normalTurretCancellationTokenSource?.Dispose();
+        turretCancellationTokenSource?.Cancel();
+        turretCancellationTokenSource?.Dispose();
         bulletPool?.Dispose();
     }
 
@@ -59,14 +62,14 @@ public class NormalTurret : TurretBase
     private void ValidateComponents()
     {
         if (bulletPrefab == null) Debug.LogError($"[{gameObject.name}] Bullet Prefab이 할당되지 않았습니다.", this);
-        if (firePoint == null) Debug.LogError($"[{gameObject.name}] Fire Point가 할당되지 않았습니다.", this);
+        if (firePoints == null || firePoints.Length == 0) Debug.LogError($"[{gameObject.name}] Fire Points가 할당되지 않았습니다.", this);
     }
 
-    private async UniTask InitializeNormalTurretAsync(CancellationToken cancellationToken)
+    private async UniTask InitializeTurretAsync(CancellationToken cancellationToken)
     {
         await UniTask.Yield(cancellationToken);
         InitializeBulletPool();
-        isNormalTurretInitialized = true;
+        isTurretInitialized = true;
     }
 
     private void InitializeBulletPool()
@@ -99,7 +102,7 @@ public class NormalTurret : TurretBase
             ChangeState(TerretState.Active);
             if (fireCountdown <= 0f)
             {
-                ShootAsync(normalTurretCancellationTokenSource.Token).Forget();
+                ShootAsync(turretCancellationTokenSource.Token).Forget();
                 fireCountdown = 1f / fireRate;
             }
         }
@@ -119,35 +122,38 @@ public class NormalTurret : TurretBase
 
         try
         {
-            await UniTask.Yield(cancellationToken);
-            if (target == null) return; // 발사 직전 타겟 재확인
+            Vector3 targetPosition = target.position;
+            Vector3 commonDirection = (targetPosition - turretHead.position).normalized;
 
-            GameObject bulletGo = bulletPool.Get();
-            if (bulletGo == null) return;
+            foreach (var firePoint in firePoints)
+            {
+                if (cancellationToken.IsCancellationRequested) break;
+                
+                FireOneShot(firePoint, commonDirection);
 
-            EffectManager.Instance.PlayEffect(EffectType.TurretShoot, firePoint.position);
-
-            ConfigureBullet(bulletGo, target);
+                await UniTask.Delay((int)(delayBetweenShots * 1000), cancellationToken: cancellationToken);
+            }
         }
         catch (System.Exception ex)
         {
-            if (!(ex is MissingReferenceException))
-            {
-                Debug.LogError($"[{gameObject.name}] 발사 오류: {ex.Message}");
-            }
+            Debug.LogError($"[{gameObject.name}] 발사 오류: {ex.Message}");
         }
     }
-
-    private void ConfigureBullet(GameObject bulletGo, Transform bulletTarget)
+    
+    private void FireOneShot(Transform firePoint, Vector3 direction)
     {
-        if (bulletTarget == null)
-        {
-            bulletPool.Release(bulletGo);
-            return;
-        }
+        if (firePoint == null) return;
 
-        Vector3 direction = (bulletTarget.position - firePoint.position).normalized;
+        GameObject bulletGo = bulletPool.Get();
+        if (bulletGo == null) return;
 
+        EffectManager.Instance.PlayEffect(EffectType.TurretShoot, firePoint.position);
+        
+        ConfigureBullet(bulletGo, firePoint, direction);
+    }
+
+    private void ConfigureBullet(GameObject bulletGo, Transform firePoint, Vector3 direction)
+    {
         bulletGo.transform.position = firePoint.position;
         bulletGo.transform.rotation = Quaternion.LookRotation(direction);
         

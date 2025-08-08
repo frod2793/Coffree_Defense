@@ -32,7 +32,7 @@ public class TerretControl : MonoBehaviour
     private Transform turretSpawnPoint; // 터렛이 생성될 위치
     
     [Header("조합 데이터")]
-    [SerializeField] private TurretCombinationData combinationData; // 조합법 데이터
+    [SerializeField] private TurretCombinationRecipe combinationRecipe; // 조합법 데이터베이스
     private TurretBase highlightedTurret; // 현재 하이라이트된 터렛
     private GameObject draggedItem; // 현재 드래그 중인 아이템의 프리팹 미리보기
     private GameObject selectedItemPrefab; // 현재 선택된 원본 아이템 프리팹
@@ -103,8 +103,8 @@ public class TerretControl : MonoBehaviour
         
         EffectManager.Instance.PlayEffect(EffectType.TurretSpawn,turretSpawnPoint.position);
         
-        // 지정된 스폰 위치에 뼈대 터렛 프리팹을 배치
-        GameObject newTurret = Instantiate(turretBonePrefab, turretSpawnPoint.position, turretSpawnPoint.rotation);
+        // 지정된 스폰 위치에 뼈대 터렛 프리팹을 배치 (회전 값을 Quaternion.identity로 강제)
+        GameObject newTurret = Instantiate(turretBonePrefab, turretSpawnPoint.position, Quaternion.identity);
         
         // 터렛 레이어 설정을 비동기로 처리
         await SetTurretLayerAsync(newTurret, cancellationToken);
@@ -138,19 +138,19 @@ public class TerretControl : MonoBehaviour
     // 조합 데이터 유효성 검사
     private void CheckCombinationData()
     {
-        if (combinationData == null)
+        if (combinationRecipe == null)
         {
-            Debug.LogError("조합 데이터가 설정되지 않았습니다! Inspector에서 TurretCombinationData를 할당해주세요.");
+            Debug.LogError("조합 데이터가 설정되지 않았습니다! Inspector에서 TurretCombinationRecipe를 할당해주세요.");
             return;
         }
         
-        if (combinationData.recipes == null || combinationData.recipes.Count == 0)
+        if (combinationRecipe.recipes == null || combinationRecipe.recipes.Count == 0)
         {
             Debug.LogError("조합 데이터에 레시피가 없습니다! 레시피를 추가해주세요.");
             return;
         }
         
-        Debug.Log($"조합 데이터 로드 완료: {combinationData.recipes.Count}개 레시피");
+        Debug.Log($"조합 데이터 로드 완료: {combinationRecipe.recipes.Count}개 레시피");
     }
 
     void Update()
@@ -290,7 +290,7 @@ public class TerretControl : MonoBehaviour
                 return;
             }
             
-            TurretBase resultPrefab = combinationData.GetCombinationResult(turretBase, itemComponent);
+            TurretBase resultPrefab = combinationRecipe.GetCombinationResult(turretBase, itemComponent);
             if (resultPrefab != null)
             {
                 if (highlightedTurret != turretBase)
@@ -299,8 +299,8 @@ public class TerretControl : MonoBehaviour
                     if (highlightedTurret != null) 
                     {
                         highlightedTurret.SetOutline(false);
-                        // 조합 모드를 종료
-                        highlightedTurret.EndCombining();
+                        // 조합 모드를 종료 (비동기 호출)
+                        highlightedTurret.EndCombiningAsync(cancellationTokenSource.Token).Forget();
                         // 조합 효과 제거
                         HideCombinationEffect(highlightedTurret);
                     }
@@ -309,8 +309,8 @@ public class TerretControl : MonoBehaviour
                     highlightedTurret = turretBase;
                     highlightedTurret.SetOutline(true);
                     
-                    // 터렛을 조합 모드로 즉시 변경
-                    highlightedTurret.StartCombining();
+                    // 터렛을 조합 모드로 즉시 변경 (비동기 호출)
+                    highlightedTurret.StartCombiningAsync(cancellationTokenSource.Token).Forget();
                     
                     // 조합 가능 시각적 효과 표시
                     ShowCombinationEffect(highlightedTurret);
@@ -336,8 +336,8 @@ public class TerretControl : MonoBehaviour
         if (highlightedTurret != null)
         {
             highlightedTurret.SetOutline(false);
-            // 조합 모드 종료
-            highlightedTurret.EndCombining();
+            // 조합 모드 종료 (비동기 호출)
+            highlightedTurret.EndCombiningAsync(cancellationTokenSource.Token).Forget();
             // 조합 효과 제거
             HideCombinationEffect(highlightedTurret);
             highlightedTurret = null;
@@ -449,7 +449,7 @@ public class TerretControl : MonoBehaviour
         HideCombinationEffect(highlightedTurret);
         
         // 조합 결과 확인
-        TurretBase resultPrefab = combinationData.GetCombinationResult(highlightedTurret, item);
+        TurretBase resultPrefab = combinationRecipe.GetCombinationResult(highlightedTurret, item);
         if (resultPrefab != null)
         {
             // 조합 성공 시 조합 효과 표시 (EffectManager 사용)
@@ -463,7 +463,6 @@ public class TerretControl : MonoBehaviour
             
             // 기존 터렛의 위치와 회전 저장
             Vector3 turretPosition = highlightedTurret.transform.position;
-            Quaternion turretRotation = highlightedTurret.transform.rotation;
             // 스폰 높이 적용
             turretPosition.y = combinedTurretSpawnHeight;
             // 기존 터렛을 먼저 안전하게 파괴
@@ -471,8 +470,8 @@ public class TerretControl : MonoBehaviour
             highlightedTurret = null;
             // 조합 처리를 다음 프레임으로 분산
             await UniTask.Yield(cancellationToken);
-            // 새 터렛 생성
-            GameObject newTurretObj = Instantiate(resultPrefab.gameObject, turretPosition, turretRotation);
+            // 새 터렛 생성 (회전 값을 Quaternion.identity로 강제)
+            GameObject newTurretObj = Instantiate(resultPrefab.gameObject, turretPosition, Quaternion.identity);
             TurretBase newTurretBase = newTurretObj.GetComponent<TurretBase>();
             
             // 새 터렛의 레이어 설정
