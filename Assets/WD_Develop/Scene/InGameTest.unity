@@ -1753,7 +1753,7 @@ MonoBehaviour:
   maxHp: 100
   currentHp: 100
   range: 15
-  turnSpeed: 10
+  rotationDuration: 0.15
   turretHead: {fileID: 1799743826}
   enemyTag: Enemy
   targetUpdateInterval: 0.5
@@ -2921,7 +2921,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2954300113465931911, guid: 4157bfb434e7446f8a56db8483b32606, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5636764226099140884, guid: 4157bfb434e7446f8a56db8483b32606, type: 3}
       propertyPath: m_LocalPosition.x
