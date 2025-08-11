@@ -818,24 +818,24 @@ PlayerSettings:
   webGLCloseOnQuit: 0
   webWasm2023: 0
   scriptingDefineSymbols:
-    Android: DOTWEEN
-    EmbeddedLinux: DOTWEEN
+    Android: DOTWEEN;KAMGAM_POWER_PIVOT
+    EmbeddedLinux: DOTWEEN;KAMGAM_POWER_PIVOT
     GameCoreScarlett: DOTWEEN
-    GameCoreXboxOne: DOTWEEN
-    Kepler: DOTWEEN
-    LinuxHeadlessSimulation: DOTWEEN
-    Nintendo Switch: DOTWEEN
-    Nintendo Switch 2: DOTWEEN
-    PS4: DOTWEEN
-    PS5: DOTWEEN
-    QNX: DOTWEEN
-    Standalone: DOTWEEN
-    VisionOS: DOTWEEN
-    WebGL: DOTWEEN
-    Windows Store Apps: DOTWEEN
-    XboxOne: DOTWEEN
-    iPhone: DOTWEEN
-    tvOS: DOTWEEN
+    GameCoreXboxOne: DOTWEEN;KAMGAM_POWER_PIVOT
+    Kepler: DOTWEEN;KAMGAM_POWER_PIVOT
+    LinuxHeadlessSimulation: DOTWEEN;KAMGAM_POWER_PIVOT
+    Nintendo Switch: DOTWEEN;KAMGAM_POWER_PIVOT
+    Nintendo Switch 2: DOTWEEN;KAMGAM_POWER_PIVOT
+    PS4: DOTWEEN;KAMGAM_POWER_PIVOT
+    PS5: DOTWEEN;KAMGAM_POWER_PIVOT
+    QNX: DOTWEEN;KAMGAM_POWER_PIVOT
+    Standalone: DOTWEEN;KAMGAM_POWER_PIVOT
+    VisionOS: DOTWEEN;KAMGAM_POWER_PIVOT
+    WebGL: DOTWEEN;KAMGAM_POWER_PIVOT
+    Windows Store Apps: DOTWEEN;KAMGAM_POWER_PIVOT
+    XboxOne: DOTWEEN;KAMGAM_POWER_PIVOT
+    iPhone: DOTWEEN;KAMGAM_POWER_PIVOT
+    tvOS: DOTWEEN;KAMGAM_POWER_PIVOT
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend:
