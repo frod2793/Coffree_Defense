@@ -14,7 +14,7 @@ using WD_Develop.Scripts;
 public class InGameUIManager : MonoBehaviour
 {
     #region 필드 및 속성
-    
+
     // 포탑 조합에 대한 결과오브젝트는 scriptable object로 관리합니다.
     // 조합 식 클래스를 따로 생성하여 조합에 따라 포탑의 프리펙 을 변경 
     // 포탑의 기본 구동 방식은 TurretBase 클래스를 상속받아 구현합니다.
@@ -35,43 +35,43 @@ public class InGameUIManager : MonoBehaviour
     /// <summary>
     /// 선택 ui 에서 드래그 하여 인게임 맵으로 마우스 포인트 이동시에 마우스 포인터 위치에 미리보기 아이템 프리펙을 표시합니다.
     /// </summary>
-    
+
     // 드래그 관련
     private bool isDraggingTurret = false;
+
     private TerretControl terretControl;
 
-    [Header("In-Game UI Manager")]
-    [SerializeField] Camera inGameCamera;
+    [Header("In-Game UI Manager")] [SerializeField]
+    Camera inGameCamera;
+
     [SerializeField] private GameObject inGameUI;
     [SerializeField] private GameManager gameManager;
     [SerializeField] private Button addTurretButton;
 
-    
-    [Header("드래그 오브젝트")]
-    [SerializeField] private List<Image> images;
+    [Header("게임오버 팝업")] [SerializeField] private GameObject gameOverPanel;
+    [SerializeField] private Button restartBtn;
+    [SerializeField] private Button gotoLobbyBtn;
+    [SerializeField] private TMP_Text getCoinText;
+
+    [Header("드래그 오브젝트")] [SerializeField] private List<Image> images;
     [SerializeField] private List<GameObject> PrefabList;
-    
-    [Header("게임진행 정보")]
-    [SerializeField] private TMP_Text waveText; // 현재 웨이브 표시용(효과용) 텍스트
+
+    [Header("게임진행 정보")] [SerializeField] private TMP_Text waveText; // 현재 웨이브 표시용(효과용) 텍스트
     [SerializeField] private TMP_Text nowWaveText; // 현재 진행 웨이브 상시 표시용 
     [SerializeField] private TMP_Text enemyText; // 현재 남은 적 + 스폰예정적 / 웨이브 총 적
-    
-    [Header("사용자 데이터")]
-    [SerializeField] private TextMeshProUGUI coinText;
+
+    [Header("사용자 데이터")] [SerializeField] private TextMeshProUGUI coinText;
     [SerializeField] private TextMeshProUGUI tpText;
     [SerializeField] private TextMeshProUGUI waterPointText;
 
-    [Header("성능 설정")]
-    [SerializeField] private float currencyUpdateInterval = 0.5f;
+    [Header("성능 설정")] [SerializeField] private float currencyUpdateInterval = 0.5f;
     [SerializeField] private int eventTriggerBatchSize = 5; // 이벤트 트리거 설정 시 프레임 분산 크기
 
-    [Header("게임 상태")]
-    [SerializeField] private TextMeshProUGUI GameCountDownText; // 게임 카운트다운 텍스트
+    [Header("게임 상태")] [SerializeField] private TextMeshProUGUI GameCountDownText; // 게임 카운트다운 텍스트
     [SerializeField] private float countdownDuration = 10f; // 카운트다운 시간 (초)
     [SerializeField] private bool enableCountdown = true; // 카운트다운 활성화 여부
-    
-    [Header( "워터 프레스 " )]
-    [SerializeField] private Button waterPressButton; // 워터 프레스 버튼
+
+    [Header("워터 프레스 ")] [SerializeField] private Button waterPressButton; // 워터 프레스 버튼
     [SerializeField] private int waterPressCost = 10; // 워터 프레스 사용 비용 (워터포인트)
     [SerializeField] private int waterPressReward = 50; // 워터 프레스 사용시 코인 보상
     [SerializeField] private float waterPressCooldown = 5f; // 워터 프레스 쿨다운 시간 (초)
@@ -79,8 +79,9 @@ public class InGameUIManager : MonoBehaviour
     [SerializeField] private bool enableHydroPrefabSpawn = false; // 수압프레스 프리팹 스폰 활성화 여부
 
 
-    [Header("터렛 및 적 hp 정보")]
-    [SerializeField] private Canvas hpWorldCanvas; // hp 프리펩을 표시할 캔버스
+    [Header("터렛 및 적 hp 정보")] [SerializeField]
+    private Canvas hpWorldCanvas; // hp 프리펩을 표시할 캔버스
+
     [SerializeField] private Slider turretHPSliderPrefb; // 터렛 hp 슬라이더프리펩
     [SerializeField] private Slider enemyHPSliderPrefb; // 적 hp 슬라이더프리펩
 
@@ -88,21 +89,20 @@ public class InGameUIManager : MonoBehaviour
     private bool isWaterPressOnCooldown = false;
     private float waterPressCooldownTimer = 0f;
 
-    
+
     // 게임 상태 관리
     private bool isGameStarted = false;
     private bool isCountdownActive = false;
 
-    
+
     // UniTask 관련
     private CancellationTokenSource cancellationTokenSource;
     private bool isInitialized = false;
-    
+
     // 성능 최적화를 위한 캐시
     private DataManger.CurrencyInfo lastCurrencyInfo;
     private bool hasDataMangerEvents = false;
 
-    
     #endregion
 
     #region 유니티 생명주기
@@ -150,6 +150,7 @@ public class InGameUIManager : MonoBehaviour
             if (terretControl == null)
                 Debug.LogError("[InGameUIManager] TerretControl을 찾을 수 없습니다.");
         }
+
         await UniTask.CompletedTask;
     }
 
@@ -176,6 +177,7 @@ public class InGameUIManager : MonoBehaviour
             Debug.LogWarning("[InGameUIManager] 드래그 가능한 이미지가 설정되지 않았습니다.");
             return;
         }
+
         for (int i = 0; i < images.Count; i++)
         {
             var image = images[i];
@@ -189,7 +191,7 @@ public class InGameUIManager : MonoBehaviour
     private void SetupImageEventTrigger(Image image, int index)
     {
         var trigger = image.GetComponent<EventTrigger>() ?? image.gameObject.AddComponent<EventTrigger>();
-        
+
         trigger.triggers.Clear(); // 기존 트리거 정리
 
         // Begin Drag 이벤트
@@ -218,13 +220,13 @@ public class InGameUIManager : MonoBehaviour
             addTurretButton.onClick.RemoveAllListeners(); // 기존 리스너 정리
             addTurretButton.onClick.AddListener(OnAddTurretButtonClicked);
         }
-        
+
         // 워터 프레스 버튼 이벤트 설정
         if (waterPressButton != null)
         {
             waterPressButton.onClick.RemoveAllListeners();
             waterPressButton.onClick.AddListener(OnWaterPressButtonClicked);
-            
+
             // 초기 상태 설정
             UpdateWaterPressButtonState();
         }
@@ -323,7 +325,7 @@ public class InGameUIManager : MonoBehaviour
             if (enableHydroPrefabSpawn && gameManager != null)
             {
                 bool hydroSpawnSuccess = await gameManager.SpawnHydroWaterPressAsync(cancellationToken);
-                
+
                 if (hydroSpawnSuccess)
                 {
                     Debug.Log("[InGameUIManager] 수압프레스 스폰 성공!");
@@ -391,8 +393,8 @@ public class InGameUIManager : MonoBehaviour
     {
         if (waterPressButton == null) return;
 
-        bool canUse = !isWaterPressOnCooldown && 
-                      DataManger.IsAvailable() && 
+        bool canUse = !isWaterPressOnCooldown &&
+                      DataManger.IsAvailable() &&
                       DataManger.Instance.GetWaterPoint() >= waterPressCost;
 
         waterPressButton.interactable = canUse;
@@ -409,6 +411,7 @@ public class InGameUIManager : MonoBehaviour
             colors.normalColor = Color.white;
             colors.disabledColor = Color.gray;
         }
+
         waterPressButton.colors = colors;
     }
 
@@ -429,7 +432,7 @@ public class InGameUIManager : MonoBehaviour
         {
             waterPressCooldownText.text = "사용 가능";
             waterPressCooldownText.color = Color.green;
-            
+
             // 쿨다운이 없으면 텍스트를 숨길 수도 있습니다
             // waterPressCooldownText.gameObject.SetActive(false);
         }
@@ -440,8 +443,8 @@ public class InGameUIManager : MonoBehaviour
     /// </summary>
     public bool CanUseWaterPress()
     {
-        return !isWaterPressOnCooldown && 
-               DataManger.IsAvailable() && 
+        return !isWaterPressOnCooldown &&
+               DataManger.IsAvailable() &&
                DataManger.Instance.GetWaterPoint() >= waterPressCost;
     }
 
@@ -537,7 +540,7 @@ public class InGameUIManager : MonoBehaviour
         {
             await SubscribeToDataMangerEventsAsync(cancellationToken);
             await UpdateAllCurrencyDisplaysAsync(cancellationToken);
-            
+
             Debug.Log("[InGameUIManager] 재화 UI 초기화 완료");
         }
         else
@@ -559,6 +562,7 @@ public class InGameUIManager : MonoBehaviour
             DataManger.Instance.OnWaterPointChanged += UpdateWaterPointDisplay;
             hasDataMangerEvents = true;
         }
+
         await UniTask.CompletedTask;
     }
 
@@ -617,13 +621,14 @@ public class InGameUIManager : MonoBehaviour
             UpdateChangedCurrencyDisplays(currencyInfo);
             lastCurrencyInfo = currencyInfo;
         }
+
         await UniTask.CompletedTask;
     }
 
     private bool CurrencyInfoEquals(DataManger.CurrencyInfo info1, DataManger.CurrencyInfo info2)
     {
-        return info1.coin == info2.coin && 
-               info1.tp == info2.tp && 
+        return info1.coin == info2.coin &&
+               info1.tp == info2.tp &&
                info1.waterPoint == info2.waterPoint;
     }
 
@@ -677,7 +682,7 @@ public class InGameUIManager : MonoBehaviour
         {
             waterPointText.text = $"워터포인트: {amount:N0}";
             waterPointText.color = amount > 0 ? Color.black : Color.red;
-            
+
             // 워터 프레스 버튼 상태도 함께 업데이트
             UpdateWaterPressButtonState();
         }
@@ -751,25 +756,27 @@ public class InGameUIManager : MonoBehaviour
         return success;
     }
 
-    private async UniTask<bool> ProcessCurrencySpendingAsync(int coinCost, int tpCost, int waterPointCost, CancellationToken cancellationToken)
+    private async UniTask<bool> ProcessCurrencySpendingAsync(int coinCost, int tpCost, int waterPointCost,
+        CancellationToken cancellationToken)
     {
         bool success = true;
-        
+
         if (coinCost > 0) success &= await DataManger.Instance.SpendCoinAsync(coinCost, cancellationToken);
         if (tpCost > 0) success &= await DataManger.Instance.SpendTPAsync(tpCost, cancellationToken);
-        if (waterPointCost > 0) success &= await DataManger.Instance.SpendWaterPointAsync(waterPointCost, cancellationToken);
-        
+        if (waterPointCost > 0)
+            success &= await DataManger.Instance.SpendWaterPointAsync(waterPointCost, cancellationToken);
+
         return success;
     }
 
     private bool ProcessCurrencySpending(int coinCost, int tpCost, int waterPointCost)
     {
         bool success = true;
-        
+
         if (coinCost > 0) success &= DataManger.Instance.SpendCoin(coinCost);
         if (tpCost > 0) success &= DataManger.Instance.SpendTP(tpCost);
         if (waterPointCost > 0) success &= DataManger.Instance.SpendWaterPoint(waterPointCost);
-        
+
         return success;
     }
 
@@ -836,7 +843,7 @@ public class InGameUIManager : MonoBehaviour
         if (GameCountDownText == null) return;
 
         int seconds = Mathf.CeilToInt(remainingTime);
-        
+
         // 시간에 따른 다른 메시지 표시
         if (seconds > 5)
         {
@@ -847,7 +854,7 @@ public class InGameUIManager : MonoBehaviour
         {
             GameCountDownText.text = $"{seconds}";
             GameCountDownText.color = Color.red;
-            
+
             // 마지막 5초는 크기 효과 추가
             float scale = 1f + (6 - seconds) * 0.2f;
             GameCountDownText.transform.localScale = Vector3.one * scale;
@@ -930,12 +937,12 @@ public class InGameUIManager : MonoBehaviour
         if (isCountdownActive)
         {
             cancellationTokenSource?.Cancel();
-            
+
             if (GameCountDownText != null && GameCountDownText.gameObject != null)
             {
                 GameCountDownText.gameObject.SetActive(false);
             }
-            
+
             isCountdownActive = false;
             Debug.Log("[InGameUIManager] 카운트다운이 중지되었습니다.");
         }
@@ -991,16 +998,20 @@ public class InGameUIManager : MonoBehaviour
                     GameCountDownText.color = Color.cyan;
                     GameCountDownText.transform.localScale = Vector3.one * 1.5f;
                 }
+
                 await UniTask.Delay(1000, DelayType.DeltaTime, PlayerLoopTiming.Update, cancellationToken);
                 remainingTime -= 1f;
             }
+
             // "WAVE!" 메시지 잠시 표시
             GameCountDownText.text = "WAVE!";
             GameCountDownText.color = Color.cyan;
             GameCountDownText.transform.localScale = Vector3.one * 1.5f;
             await UniTask.Delay(1000, DelayType.DeltaTime, PlayerLoopTiming.Update, cancellationToken);
         }
-        catch (System.OperationCanceledException) { }
+        catch (System.OperationCanceledException)
+        {
+        }
         finally
         {
             if (GameCountDownText != null && GameCountDownText.gameObject != null)
@@ -1096,13 +1107,13 @@ public class InGameUIManager : MonoBehaviour
     /// </summary>
     public float WaterPressCooldownTimer => waterPressCooldownTimer;
 
-
     #endregion
 
     /// <summary>
     /// 웨이브 안내 텍스트를 페이드 인/아웃으로 표시
     /// </summary>
-    public async UniTask ShowWaveTextAsync(string message, float fadeInTime = 0.5f, float displayTime = 1.5f, float fadeOutTime = 0.5f)
+    public async UniTask ShowWaveTextAsync(string message, float fadeInTime = 0.5f, float displayTime = 1.5f,
+        float fadeOutTime = 0.5f)
     {
         if (waveText == null) return;
         var color = waveText.color;
@@ -1120,6 +1131,7 @@ public class InGameUIManager : MonoBehaviour
             waveText.color = color;
             await UniTask.Yield();
         }
+
         color.a = 1f;
         waveText.color = color;
 
@@ -1135,6 +1147,7 @@ public class InGameUIManager : MonoBehaviour
             waveText.color = color;
             await UniTask.Yield();
         }
+
         color.a = 0f;
         waveText.color = color;
         waveText.gameObject.SetActive(false);
@@ -1143,11 +1156,12 @@ public class InGameUIManager : MonoBehaviour
     /// <summary>
     /// 웨이브 종료 안내 텍스트를 페이드 인/아웃으로 표시
     /// </summary>
-    public async UniTask ShowWaveEndTextAsync(string message = "웨이브 종료!", float fadeInTime = 0.5f, float displayTime = 1.5f, float fadeOutTime = 0.5f)
+    public async UniTask ShowWaveEndTextAsync(string message = "웨이브 종료!", float fadeInTime = 0.5f,
+        float displayTime = 1.5f, float fadeOutTime = 0.5f)
     {
         await ShowWaveTextAsync(message, fadeInTime, displayTime, fadeOutTime);
     }
-    
+
     #region 게임 진행 UI
 
     /// <summary>
@@ -1181,7 +1195,7 @@ public class InGameUIManager : MonoBehaviour
     }
 
     #endregion
-    
+
     #region HP Bar System
 
     /// <summary>
@@ -1234,7 +1248,8 @@ public class InGameUIManager : MonoBehaviour
 
         if (controller == null)
         {
-            Debug.LogError($"[InGameUIManager] HP 바 프리팹 '{hpBarPrefab.name}'에 HPBarController 컴포넌트가 없습니다!", hpBarPrefab);
+            Debug.LogError($"[InGameUIManager] HP 바 프리팹 '{hpBarPrefab.name}'에 HPBarController 컴포넌트가 없습니다!",
+                hpBarPrefab);
             Destroy(hpBarInstance.gameObject);
             return null;
         }
@@ -1244,5 +1259,34 @@ public class InGameUIManager : MonoBehaviour
         return controller;
     }
 
+    #endregion
+
+    #region 게임오버 UI
+    /// <summary>
+    /// 게임 오버 패널을 활성화하고 최종 코인 정보를 표시합니다.
+    /// </summary>
+    public void ShowGameOverPanel(int finalCoin)
+    {
+        if (gameOverPanel != null)
+        {
+            gameOverPanel.SetActive(true);
+        }
+        if (getCoinText != null)
+        {
+            getCoinText.text = $"획득 코인: {finalCoin:N0}";
+        }
+
+        // 버튼 리스너 추가 (임시)
+        if (restartBtn != null)
+        {
+            restartBtn.onClick.RemoveAllListeners();
+            restartBtn.onClick.AddListener(() => Debug.Log("재시작 버튼 클릭!")); // TODO: 재시작 로직 구현
+        }
+        if (gotoLobbyBtn != null)
+        {
+            gotoLobbyBtn.onClick.RemoveAllListeners();
+            gotoLobbyBtn.onClick.AddListener(() => Debug.Log("로비로 이동 버튼 클릭!")); // TODO: 로비 이동 로직 구현
+        }
+    }
     #endregion
 }

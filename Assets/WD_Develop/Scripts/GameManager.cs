@@ -34,7 +34,7 @@ using UnityEngine.EventSystems;
         #region 필드 및 속성
 
         [Header("caffe wall")] 
-        [SerializeField] private GameObject caffewall;// 카페의 최종벽 
+        [SerializeField] private GameObject caffewall;
         private CaffeWallHealth caffeWallHealth;
         
         [Header("스테이지 데이터")]
@@ -112,6 +112,7 @@ using UnityEngine.EventSystems;
         void Awake()
         {
             FindRequiredComponents();
+            OnGameOver += HandleGameOver;
         }
 
         async void Start()
@@ -129,6 +130,7 @@ using UnityEngine.EventSystems;
         void OnDestroy()
         {
             CleanupResources();
+            OnGameOver -= HandleGameOver;
         }
 
         #endregion
@@ -458,6 +460,14 @@ using UnityEngine.EventSystems;
             if (isGameActive)
             {
                 EndGameAsync(false, cancellationTokenSource.Token).Forget();
+            }
+        }
+
+        private void HandleGameOver()
+        {
+            if (uiManager != null && DataManger.IsAvailable())
+            {
+                uiManager.ShowGameOverPanel(DataManger.Instance.GetAllCurrencyInfo().coin);
             }
         }
 
