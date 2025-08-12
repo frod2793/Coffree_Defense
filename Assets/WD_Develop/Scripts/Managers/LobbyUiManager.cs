@@ -12,12 +12,12 @@ namespace WD_Develop.Scripts.Managers
 
         [SerializeField]
         Button settingButton;// 셋팅버튼 
-        
+
         [Header("아이템 구매 창")]
-        [SerializeField] 
+        [SerializeField]
         private GameObject buyPopUpPanel; // 플레이버튼 클릭시 나올 플레이전 아이템 구매 창
 
-        [SerializeField] 
+        [SerializeField]
         private GameObject settingPopUpPanel; // 셋팅 창
         [SerializeField]
         private Button gameStartButton; // 아이템 구매 창에서 게임 시작 버튼
@@ -114,17 +114,19 @@ namespace WD_Develop.Scripts.Managers
 
         private void OnPlayButtonClicked()
         {
+            UIButtonSoundPlay();
             ShowBuyPopup();
         }
-        
+
         private void OnSettingButtonClicked()
         {
-            Debug.Log("Setting button clicked");
+            UIButtonSoundPlay();
             ShowSettingPopup();
         }
 
         private void OnGameStartButtonClicked()
         {
+            UIButtonSoundPlay();
             // 게임 시작 로직
             Debug.Log("게임을 시작합니다!");
 
@@ -136,16 +138,18 @@ namespace WD_Develop.Scripts.Managers
         }
 
         private void OnCloseButtonClicked()
-        {   
+        {
+            UIButtonSoundPlay();
             HideBuyPopup();
         }
-        
+
 
         private void OnBuyTurretPointsClicked()
         {
             // 포탑 포인트 구매 로직
             if (CanAffordCost(turretPointsCost))
             {
+                StoreButtonSoundPlay();
                 // turretPoints += 10;
                 DataManger.Instance.SpendCoin(turretPointsCost);
                 DataManger.Instance.AddTP(boughtTurretPoints);
@@ -166,16 +170,17 @@ namespace WD_Develop.Scripts.Managers
         private void OnBuyWaterPointsClicked()
         {
             // 워터 포인트 구매 로직
-            
+
             if (CanAffordCost(waterPointsCost))
             {
+                StoreButtonSoundPlay();
                 // waterPoints += 10;
                 DataManger.Instance.SpendCoin(waterPointsCost);
                 DataManger.Instance.AddWaterPoint(boughtWaterPoints);
                 UserPointUpdate();
 
                 Debug.Log($"워터 포인트 구매 완료! 현재 워터 포인트: {waterPoints}");
-                
+
                 // 구매 성공 애니메이션
                 AnimateButtonPress(buyWwButton.gameObject);
             }
@@ -191,15 +196,18 @@ namespace WD_Develop.Scripts.Managers
         {
             if (CanAffordTP(boughtTurretPoints))
             {
+                StoreButtonSoundPlay();
                 DataManger.Instance.SpendTP(boughtTurretPoints);
                 DataManger.Instance.AddCoin((int)(turretPointsCost * salesRatio)); // 판매시 판매 비율 적용
                 UserPointUpdate();
 
                 Debug.Log($"포탑 포인트 판매 완료! 현재 포탑 포인트: {turretPoints}");
+                AnimateButtonPress(sellTpButton.gameObject);
             }
             else
             {
                 Debug.Log("포탑 포인트를 판매할 수 없습니다. 포탑 포인트가 부족합니다.");
+                AnimateButtonShake(sellTpButton.gameObject);
             }
         }
 
@@ -207,15 +215,18 @@ namespace WD_Develop.Scripts.Managers
         {
             if (CanAffordWP(boughtWaterPoints))
             {
+                StoreButtonSoundPlay();
                 DataManger.Instance.SpendWaterPoint(boughtWaterPoints);
                 DataManger.Instance.AddCoin((int)(waterPointsCost * salesRatio)); // 판매시 판매 비율 적용
                 UserPointUpdate();
 
                 Debug.Log($"워터 포인트 판매 완료! 현재 워터 포인트: {waterPoints}");
+                AnimateButtonPress(sellWwButton.gameObject);
             }
             else
             {
                 Debug.Log("워터 포인트를 판매할 수 없습니다. 워터 포인트가 부족합니다.");
+                AnimateButtonShake(sellWwButton.gameObject);
             }
         }
 
@@ -246,9 +257,10 @@ namespace WD_Develop.Scripts.Managers
                     .OnComplete(() => buyPopUpPanel.SetActive(false));
             }
         }
-        
+
         private void ShowSettingPopup()
         {
+            Debug.Log("Setting button clicked");
             if (settingPopUpPanel != null)
             {
                 settingPopUpPanel.SetActive(true);
@@ -311,6 +323,20 @@ namespace WD_Develop.Scripts.Managers
             playButton?.transform.DOKill();
             buyTpButton?.transform.DOKill();
             buyWwButton?.transform.DOKill();
+        }
+
+        #endregion
+
+        #region 사운드용
+
+        private void UIButtonSoundPlay()
+        {
+            SoundManager.Instance.PlaySound(AudioMixerType.SFX, "UIButton");
+        }
+
+        private void StoreButtonSoundPlay()
+        {
+            SoundManager.Instance.PlaySound(AudioMixerType.SFX, "StoreButton");
         }
 
         #endregion

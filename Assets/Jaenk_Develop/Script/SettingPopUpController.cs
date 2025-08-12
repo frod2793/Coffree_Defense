@@ -1,15 +1,17 @@
 using UnityEngine;
 using UnityEngine.UI;
 using DG.Tweening;
+using UnityEngine.EventSystems;
 public class SettingPopUpController : MonoBehaviour
 {
     public Slider masterSlider;
     public Slider bgmSlider;
     public Slider sfxSlider;
+
     [SerializeField]
     private Button settingCloseButton; // 셋팅 창에서 닫기 버튼
 
-    [SerializeField] 
+    [SerializeField]
     private GameObject settingPopUpPanel; // 셋팅 창
 
     [SerializeField] private float animationDuration = 0.5f;
@@ -34,7 +36,12 @@ public class SettingPopUpController : MonoBehaviour
 
     private void OnSettingCloseButtonClicked()
     {
+        UIButtonSoundPlay();
         HideSettingPopup();
+    }
+
+    private void OnSliderHandleClicked() {
+        UIButtonSoundPlay();
     }
 
     private void HideSettingPopup()
@@ -51,16 +58,19 @@ public class SettingPopUpController : MonoBehaviour
     void OnMasterVolumeChanged(float value)
     {
         SoundManager.Instance.SetSoundVolume(AudioMixerType.Master, value);
-        Debug.Log("Master volume changed to: " + value);
     }
     void OnBgmVolumeChanged(float value)
     {
         SoundManager.Instance.SetSoundVolume(AudioMixerType.BGM, value);
-        Debug.Log("BGM volume changed to: " + value);
     }
 
     void OnSfxVolumeChanged(float value)
     {
         SoundManager.Instance.SetSoundVolume(AudioMixerType.SFX, value);
+    }
+    
+    void UIButtonSoundPlay()
+    {
+        SoundManager.Instance.PlaySound(AudioMixerType.SFX, "UIButton");
     }
 }
