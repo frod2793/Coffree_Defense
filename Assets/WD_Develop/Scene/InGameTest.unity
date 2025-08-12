@@ -353,6 +353,24 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c23190b82e47f4c698dcf4872bacc307, type: 3}
+--- !u!1 &143403848 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 52868815045656741, guid: f8c2421644b4381458d7650ee56d5d2c, type: 3}
+  m_PrefabInstance: {fileID: 1487829640}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &143403853
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 143403848}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab1ded83ae68341a8bbd6946f03faa56, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHealth: 1000
 --- !u!1 &157367108
 GameObject:
   m_ObjectHideFlags: 0
@@ -1123,6 +1141,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 52d4c131b17640544b955b3df57ac04c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  caffewall: {fileID: 143403848}
   stageData: {fileID: 11400000, guid: 43bc924746d71491cb571e04c9475b6a, type: 2}
   preparationTime: 5
   initialTPPerWave: 3
@@ -2745,7 +2764,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 52868815045656741, guid: f8c2421644b4381458d7650ee56d5d2c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 143403853}
   m_SourcePrefab: {fileID: 100100000, guid: f8c2421644b4381458d7650ee56d5d2c, type: 3}
 --- !u!1 &1507929450
 GameObject:

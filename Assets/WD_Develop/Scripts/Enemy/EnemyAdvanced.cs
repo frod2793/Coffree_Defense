@@ -887,13 +887,13 @@ public class EnemyAdvanced : MonoBehaviour
     protected virtual void AttackTurret(GameObject turret)
     {
         // 포탑에 데미지 주기
-        var turretHealth = turret.GetComponent<TurretHealth>();
+        var turretHealth = turret.GetComponent<TurretBase>();
         if (turretHealth != null)
         {
             turretHealth.TakeDamage(attackDamage);
             Debug.Log($"[{gameObject.name}] 포탑 공격: {attackDamage} 데미지");
             // 포탑이 파괴되었는지 확인
-            if (turretHealth.CurrentHealth <= 0)
+            if (turretHealth.CurrentHp <= 0)
             {
                 OnTurretDestroyed?.Invoke(this);
                 // 포탑이 파괴된 후 다음 포탑을 찾습니다.
@@ -902,7 +902,7 @@ public class EnemyAdvanced : MonoBehaviour
         }
         else
         {
-            // TurretHealth 컴포넌트가 없으면 직접 파괴
+            // TurretBase 컴포넌트가 없으면 직접 파괴
             Debug.Log($"[{gameObject.name}] 포탑 파괴: {turret.name}");
             Destroy(turret);
             OnTurretDestroyed?.Invoke(this);
@@ -914,7 +914,7 @@ public class EnemyAdvanced : MonoBehaviour
     protected virtual void AttackCafe(GameObject cafe)
     {
         // 카페 벽에 데미지 주기
-        var cafeHealth = cafe.GetComponent<CafeHealth>();
+        var cafeHealth = cafe.GetComponent<CaffeWallHealth>(); // 변경된 부분
         if (cafeHealth != null)
         {
             cafeHealth.TakeDamage(attackDamage);
@@ -1199,82 +1199,3 @@ public class EnemyAdvanced : MonoBehaviour
 
     #endregion
 }
-#region 헬스 컴포넌트 인터페이스
-
-/// <summary>
-/// 포탑 체력 관리 컴포넌트 (기본 구현)
-/// </summary>
-public class TurretHealth : MonoBehaviour
-{
-    [SerializeField] private float maxHealth = 100f;
-    private float currentHealth;
-
-    public float CurrentHealth => currentHealth;
-    public float MaxHealth => maxHealth;
-
-    private void Awake()
-    {
-        currentHealth = maxHealth;
-    }
-
-    public void TakeDamage(float damage)
-    {
-        currentHealth = Mathf.Max(0, currentHealth - damage);
-
-        if (currentHealth <= 0)
-        {
-            DestroyTurret();
-        }
-    }
-
-    private void DestroyTurret()
-    {
-        Debug.Log($"[{gameObject.name}] 포탑 파괴됨");
-        Destroy(gameObject);
-    }
-}
-/// <summary>
-/// 카페 체력 관리 컴포넌트 (기본 구현)
-/// </summary>
-public class CafeHealth : MonoBehaviour
-{
-    [SerializeField] private float maxHealth = 1000f;
-    private float currentHealth;
-
-    public float CurrentHealth => currentHealth;
-    public float MaxHealth => maxHealth;
-
-    public event Action<float> OnHealthChanged;
-    public event Action OnCafeDestroyed;
-
-    private void Awake()
-    {
-        currentHealth = maxHealth;
-    }
-
-    public void TakeDamage(float damage)
-    {
-        currentHealth = Mathf.Max(0, currentHealth - damage);
-        OnHealthChanged?.Invoke(currentHealth);
-
-        if (currentHealth <= 0)
-        {
-            DestroyCafe();
-        }
-    }
-
-    private void DestroyCafe()
-    {
-        Debug.Log($"[{gameObject.name}] 카페 파괴됨 - 게임 오버!");
-        OnCafeDestroyed?.Invoke();
-
-        // 게임 오버 처리
-        var gameManager = FindFirstObjectByType<GameManager>();
-        if (gameManager != null)
-        {
-            gameManager.TriggerGameOver();
-        }
-    }
-}
-
-#endregion
