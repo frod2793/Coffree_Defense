@@ -105,7 +105,8 @@ public class DataManger : MonoBehaviour
         {
             coin = userCurrencyData.Coin,
             tp = userCurrencyData.TP,
-            waterPoint = userCurrencyData.WaterPoint
+            waterPoint = userCurrencyData.WaterPoint,
+            clearStage = userCurrencyData.ClearStage
         };
     }
 
@@ -118,10 +119,11 @@ public class DataManger : MonoBehaviour
         public int coin;
         public int tp;
         public int waterPoint;
+        public int clearStage;
 
         public override string ToString()
         {
-            return $"코인: {coin}, TP: {tp}, 워터포인트: {waterPoint}";
+            return $"코인: {coin}, TP: {tp}, 워터포인트: {waterPoint}, 클리어 스테이지: {clearStage}";
         }
     }
 
@@ -172,13 +174,14 @@ public class DataManger : MonoBehaviour
         int savedCoin = userCurrencyData.Coin;
         int savedTP = userCurrencyData.TP;
         int savedWaterPoint = userCurrencyData.WaterPoint;
+        int savedClearStage = userCurrencyData.ClearStage;
 
         // 메인 스레드에서 이벤트 발생
         OnCoinChanged?.Invoke(savedCoin);
         OnTPChanged?.Invoke(savedTP);
         OnWaterPointChanged?.Invoke(savedWaterPoint);
 
-        Debug.Log($"[DataManger] 데이터 로드 완료 - 코인: {savedCoin}, TP: {savedTP}, 워터포인트: {savedWaterPoint}");
+        Debug.Log($"[DataManger] 데이터 로드 완료 - 코인: {savedCoin}, TP: {savedTP}, 워터포인트: {savedWaterPoint}, 클리어 스테이지: {savedClearStage}");
     }
 
     // 동기 버전 유지 (하위 호환성)
@@ -202,7 +205,7 @@ public class DataManger : MonoBehaviour
         // UserCurrencyData가 자동으로 저장하므로 수동 저장만 호출
         userCurrencyData.Save();
 
-        Debug.Log($"[DataManger] 데이터 저장 완료 - 코인: {userCurrencyData.Coin}, TP: {userCurrencyData.TP}, 워터포인트: {userCurrencyData.WaterPoint}");
+        Debug.Log($"[DataManger] 데이터 저장 완료 - 코인: {userCurrencyData.Coin}, TP: {userCurrencyData.TP}, 워터포인트: {userCurrencyData.WaterPoint}, 클리어 스테이지: {userCurrencyData.ClearStage}");
     }
 
     // 동기 버전 유지 (하위 호환성)
@@ -220,6 +223,7 @@ public class DataManger : MonoBehaviour
     public int GetCoin() => userCurrencyData?.Coin ?? 0;
     public int GetTp() => userCurrencyData?.TP ?? 0;
     public int GetWaterPoint() => userCurrencyData?.WaterPoint ?? 0;
+    public int GetClearStage() => userCurrencyData?.ClearStage ?? 0;
 
     // 코인 관련 (비동기 처리)
     public async UniTask<bool> SpendCoinAsync(int amount, CancellationToken cancellationToken = default)
@@ -348,6 +352,16 @@ public class DataManger : MonoBehaviour
         {
             userCurrencyData.AddWaterPoint(amount);
             OnWaterPointChanged?.Invoke(userCurrencyData.WaterPoint);
+        }
+    }
+
+    // 클리어 스테이지 관련
+    public void SetClearStage(int stageIndex)
+    {
+        if (userCurrencyData != null)
+        {
+            userCurrencyData.SetClearStage(stageIndex);
+            Debug.Log($"[DataManger] Clear Stage updated to: {stageIndex}");
         }
     }
 

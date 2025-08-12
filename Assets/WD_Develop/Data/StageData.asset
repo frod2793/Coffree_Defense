@@ -9,9 +9,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bb959b2854ca4803b409d13e8c21a861, type: 3}
-  m_Name: UserCurrencyData
+  m_Script: {fileID: 11500000, guid: 1b8d87d56fc7d42c389fb6c91241b30a, type: 3}
+  m_Name: StageData
   m_EditorClassIdentifier: 
-  coin: 39300
-  tp: 1508
-  waterPoint: 0
+  waveDataList:
+  - waveNumber: 0
+    spawnPoint: {x: 0, y: 0, z: 0}
+    enemyGroups: []
+    isClear: 0
