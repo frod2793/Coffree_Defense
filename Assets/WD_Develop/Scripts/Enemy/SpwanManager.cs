@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using System.Threading;
 using System.Collections.Generic;
 using System;
+using System.Linq;
 
 /// <summary>
 /// 적의 스폰 및 드롭 아이템을 관리하는 매니저 클래스
@@ -60,6 +61,9 @@ public class SpawnManager : MonoBehaviour
     // 웨이브 진행 상태 추적
     private bool _allEnemiesInQueue;
     private bool _allEnemiesSpawned;
+    private int _currentWaveIndex;
+    private int _totalEnemiesInWave;
+    private int _killedEnemiesInWave;
     
     // 오브젝트 풀
     private Dictionary<string, ObjectPool<GameObject>> enemyPools = new Dictionary<string, ObjectPool<GameObject>>();
@@ -77,7 +81,7 @@ public class SpawnManager : MonoBehaviour
     public static event Action<GameObject> OnEnemyDestroyed;
     public static event Action<GameObject, Vector3> OnItemDropped;
     public static event Action OnAllEnemiesSpawned; // 모든 적이 '필드에 생성'되었을 때 호출
-    public static event Action OnAllEnemiesCleared;  // 모든 적이 '처치'되었을 때 호출
+    public static event Action<int> OnAllEnemiesCleared;  // 모든 적이 '처치'되었을 때 호출 (waveIndex)
     
     // GameManager와의 연동을 위한 이벤트
     public static event Action<int, int> OnEnemyKilledUpdate; // (처치된 적 수, 전체 적 수)
@@ -213,13 +217,15 @@ public class SpawnManager : MonoBehaviour
     /// <summary>
     /// 웨이브 데이터를 기반으로 적 스폰 절차를 시작합니다.
     /// </summary>
-    public UniTask SpawnWaveAsync(WaveData waveData, CancellationToken cancellationToken = default)
+    public UniTask SpawnWaveAsync(WaveData waveData, int waveIndex, CancellationToken cancellationToken = default)
     {
         if (waveData == null || isSpawning)
         {
             Debug.LogWarning("[SpawnManager] 이미 스폰 중이거나 웨이브 데이터가 없습니다.");
             return UniTask.CompletedTask;
         }
+
+        _currentWaveIndex = waveIndex;
 
         // 새 웨이브를 위해 상태 초기화
         _allEnemiesInQueue = false;
@@ -236,6 +242,10 @@ public class SpawnManager : MonoBehaviour
     {
         currentState = SpawnState.Spawning;
         isSpawning = true;
+
+        _totalEnemiesInWave = waveData.enemyGroups.Sum(group => group.count);
+        _killedEnemiesInWave = 0;
+        OnEnemyKilledUpdate?.Invoke(_killedEnemiesInWave, _totalEnemiesInWave);
 
         try
         {
@@ -328,7 +338,7 @@ public class SpawnManager : MonoBehaviour
                         isSpawning = false; // 이제 진짜 스포닝 끝
                         currentState = SpawnState.Complete;
                         OnAllEnemiesSpawned?.Invoke();
-                        Debug.Log("[SpawnManager] 현재 웨이브의 모든 적이 필드에 스폰 완료되었습니다.");
+                        Debug.Log($"[SpawnManager] 웨이브 {_currentWaveIndex}의 모든 적이 필드에 스폰 완료되었습니다.");
                     }
                 }
                 
@@ -406,6 +416,9 @@ public class SpawnManager : MonoBehaviour
     {
         if (activeEnemies.Contains(enemy))
         {
+            _killedEnemiesInWave++;
+            OnEnemyKilledUpdate?.Invoke(_killedEnemiesInWave, _totalEnemiesInWave);
+
             activeEnemies.Remove(enemy);
             TryDropItem(enemy.transform.position);
             OnEnemyDestroyed?.Invoke(enemy);
@@ -413,8 +426,8 @@ public class SpawnManager : MonoBehaviour
             // '모든 적이 스폰되었고', '모든 활성 적이 제거되었는지' 확인
             if (_allEnemiesSpawned && activeEnemies.Count == 0)
             {
-                Debug.Log("[SpawnManager] 웨이브의 모든 적이 처치되었습니다.");
-                OnAllEnemiesCleared?.Invoke();
+                Debug.Log($"[SpawnManager] 웨이브 {_currentWaveIndex}의 모든 적이 처치되었습니다.");
+                OnAllEnemiesCleared?.Invoke(_currentWaveIndex);
             }
         }
         
@@ -452,6 +465,9 @@ public class SpawnManager : MonoBehaviour
         isSpawning = false;
         _allEnemiesInQueue = false;
         _allEnemiesSpawned = false;
+        _currentWaveIndex = -1;
+        _totalEnemiesInWave = 0;
+        _killedEnemiesInWave = 0;
         
         Debug.Log("[SpawnManager] 모든 적 제거 완료");
     }
@@ -591,7 +607,8 @@ public class SpawnManager : MonoBehaviour
     public string GetStatusInfo()
     {
         return $"상태: {currentState}, 활성 적: {activeEnemies.Count}, 대기 중: {spawnQueue.Count}, " +
-               $"스폰 중: {isSpawning}, 큐 완료: {_allEnemiesInQueue}, 스폰 완료: {_allEnemiesSpawned}";
+               $"스폰 중: {isSpawning}, 큐 완료: {_allEnemiesInQueue}, 스폰 완료: {_allEnemiesSpawned}, " +
+               $"웨이브: {_currentWaveIndex}, 처치: {_killedEnemiesInWave}/{_totalEnemiesInWave}";
     }
 
     #endregion
