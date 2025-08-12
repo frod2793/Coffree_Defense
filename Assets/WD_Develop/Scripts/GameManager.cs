@@ -343,7 +343,7 @@ using System.Linq;
 
             if (spawnManager != null)
             {
-                await spawnManager.SpawnWaveAsync(waveData, cancellationToken);
+                await spawnManager.SpawnWaveAsync(waveData, currentWaveIndex, cancellationToken);
             }
             else
             {

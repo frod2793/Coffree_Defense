@@ -15,5 +15,131 @@ MonoBehaviour:
   waveDataList:
   - waveNumber: 0
     spawnPoint: {x: 0, y: 0, z: 0}
-    enemyGroups: []
+    enemyGroups:
+    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
+      count: 5
+      spawnInterval: 3
+    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
+      count: 5
+      spawnInterval: 2
+    isClear: 0
+  - waveNumber: 0
+    spawnPoint: {x: 0, y: 0, z: 0}
+    enemyGroups:
+    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
+      count: 5
+      spawnInterval: 3
+    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
+      count: 5
+      spawnInterval: 2
+    isClear: 0
+  - waveNumber: 0
+    spawnPoint: {x: 0, y: 0, z: 0}
+    enemyGroups:
+    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
+      count: 5
+      spawnInterval: 3
+    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
+      count: 5
+      spawnInterval: 2
+    isClear: 0
+  - waveNumber: 0
+    spawnPoint: {x: 0, y: 0, z: 0}
+    enemyGroups:
+    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
+      count: 5
+      spawnInterval: 3
+    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
+      count: 5
+      spawnInterval: 2
+    isClear: 0
+  - waveNumber: 0
+    spawnPoint: {x: 0, y: 0, z: 0}
+    enemyGroups:
+    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
+      count: 5
+      spawnInterval: 3
+    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
+      count: 5
+      spawnInterval: 2
+    isClear: 0
+  - waveNumber: 0
+    spawnPoint: {x: 0, y: 0, z: 0}
+    enemyGroups:
+    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
+      count: 5
+      spawnInterval: 3
+    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
+      count: 5
+      spawnInterval: 2
+    isClear: 0
+  - waveNumber: 0
+    spawnPoint: {x: 0, y: 0, z: 0}
+    enemyGroups:
+    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
+      count: 5
+      spawnInterval: 3
+    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
+      count: 5
+      spawnInterval: 2
+    isClear: 0
+  - waveNumber: 0
+    spawnPoint: {x: 0, y: 0, z: 0}
+    enemyGroups:
+    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
+      count: 5
+      spawnInterval: 3
+    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
+      count: 5
+      spawnInterval: 2
+    isClear: 0
+  - waveNumber: 0
+    spawnPoint: {x: 0, y: 0, z: 0}
+    enemyGroups:
+    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
+      count: 5
+      spawnInterval: 3
+    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
+      count: 5
+      spawnInterval: 2
+    isClear: 0
+  - waveNumber: 0
+    spawnPoint: {x: 0, y: 0, z: 0}
+    enemyGroups:
+    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
+      count: 5
+      spawnInterval: 3
+    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
+      count: 5
+      spawnInterval: 2
+    isClear: 0
+  - waveNumber: 0
+    spawnPoint: {x: 0, y: 0, z: 0}
+    enemyGroups:
+    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
+      count: 5
+      spawnInterval: 3
+    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
+      count: 5
+      spawnInterval: 2
+    isClear: 0
+  - waveNumber: 0
+    spawnPoint: {x: 0, y: 0, z: 0}
+    enemyGroups:
+    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
+      count: 5
+      spawnInterval: 3
+    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
+      count: 5
+      spawnInterval: 2
+    isClear: 0
+  - waveNumber: 0
+    spawnPoint: {x: 0, y: 0, z: 0}
+    enemyGroups:
+    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
+      count: 5
+      spawnInterval: 3
+    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
+      count: 5
+      spawnInterval: 2
     isClear: 0
