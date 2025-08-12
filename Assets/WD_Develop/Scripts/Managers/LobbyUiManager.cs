@@ -57,6 +57,8 @@ namespace WD_Develop.Scripts.Managers
             InitializePopup();
 
             UserPointUpdate();
+
+            SoundManager.Instance.PlaySound(AudioMixerType.BGM, "LobbyBgm", true); // 로비 BGM 재생
         }
 
         private void UserPointUpdate()
@@ -117,6 +119,7 @@ namespace WD_Develop.Scripts.Managers
         
         private void OnSettingButtonClicked()
         {
+            Debug.Log("Setting button clicked");
             ShowSettingPopup();
         }
 
@@ -133,7 +136,7 @@ namespace WD_Develop.Scripts.Managers
         }
 
         private void OnCloseButtonClicked()
-        {
+        {   
             HideBuyPopup();
         }
         
