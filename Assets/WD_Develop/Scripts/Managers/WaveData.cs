@@ -12,4 +12,5 @@ public class WaveData
     public int waveNumber;
     public Vector3 spawnPoint;
     public List<EnemyGroup> enemyGroups = new List<EnemyGroup>();
+    public bool isClear;// todo 웨이브 클리어 확인
 }

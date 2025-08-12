@@ -1123,101 +1123,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 52d4c131b17640544b955b3df57ac04c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  totalWaves: 10
+  stageData: {fileID: 11400000, guid: 43bc924746d71491cb571e04c9475b6a, type: 2}
   preparationTime: 5
   initialTPPerWave: 3
   baseCoinReward: 50
-  waveDataList:
-  - waveNumber: 0
-    spawnPoint: {x: 0, y: 0, z: 0}
-    enemyGroups:
-    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
-      count: 2
-      spawnInterval: 0
-    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
-      count: 2
-      spawnInterval: 0
-  - waveNumber: 0
-    spawnPoint: {x: 0, y: 0, z: 0}
-    enemyGroups:
-    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
-      count: 5
-      spawnInterval: 0
-    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
-      count: 2
-      spawnInterval: 0
-  - waveNumber: 0
-    spawnPoint: {x: 0, y: 0, z: 0}
-    enemyGroups:
-    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
-      count: 5
-      spawnInterval: 0
-    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
-      count: 5
-      spawnInterval: 0
-  - waveNumber: 0
-    spawnPoint: {x: 0, y: 0, z: 0}
-    enemyGroups:
-    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
-      count: 5
-      spawnInterval: 0
-    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
-      count: 5
-      spawnInterval: 0
-  - waveNumber: 0
-    spawnPoint: {x: 0, y: 0, z: 0}
-    enemyGroups:
-    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
-      count: 5
-      spawnInterval: 0
-    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
-      count: 5
-      spawnInterval: 0
-  - waveNumber: 0
-    spawnPoint: {x: 0, y: 0, z: 0}
-    enemyGroups:
-    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
-      count: 5
-      spawnInterval: 0
-    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
-      count: 5
-      spawnInterval: 0
-  - waveNumber: 0
-    spawnPoint: {x: 0, y: 0, z: 0}
-    enemyGroups:
-    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
-      count: 5
-      spawnInterval: 0
-    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
-      count: 5
-      spawnInterval: 0
-  - waveNumber: 0
-    spawnPoint: {x: 0, y: 0, z: 0}
-    enemyGroups:
-    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
-      count: 5
-      spawnInterval: 0
-    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
-      count: 5
-      spawnInterval: 0
-  - waveNumber: 0
-    spawnPoint: {x: 0, y: 0, z: 0}
-    enemyGroups:
-    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
-      count: 5
-      spawnInterval: 0
-    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
-      count: 5
-      spawnInterval: 0
-  - waveNumber: 0
-    spawnPoint: {x: 0, y: 0, z: 0}
-    enemyGroups:
-    - enemyPrefab: {fileID: 7377194556898167998, guid: 33ddf3891c040435385df8df1739f032, type: 3}
-      count: 5
-      spawnInterval: 0
-    - enemyPrefab: {fileID: 2105603985949552455, guid: ad7b420a51a0e44dc92ff4bfd47a4bec, type: 3}
-      count: 5
-      spawnInterval: 0
   uiManager: {fileID: 2079917346}
   turretControl: {fileID: 1800508100}
   spawnManager: {fileID: 961492029}
