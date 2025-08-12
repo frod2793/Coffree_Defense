@@ -4,8 +4,9 @@ using System.Threading;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine.EventSystems;
 
-    /// <summary>
+/// <summary>
     /// 게임의 핵심 루프를 관리하는 매니저
     ///  준비 시간 → 웨이브 전투 → 결과 처리 → 다음 웨이브 준비의 사이클을 관리합니다.
     /// </summary>
@@ -32,6 +33,10 @@ using System.Linq;
 
         #region 필드 및 속성
 
+        [Header("caffe wall")] 
+        [SerializeField] private GameObject caffewall;
+        private CaffeWallHealth caffeWallHealth;
+        
         [Header("스테이지 데이터")]
         [SerializeField] private StageDataSO stageData; // ScriptableObject로 웨이브 데이터 관리
 
@@ -107,6 +112,7 @@ using System.Linq;
         void Awake()
         {
             FindRequiredComponents();
+            OnGameOver += HandleGameOver;
         }
 
         async void Start()
@@ -124,6 +130,7 @@ using System.Linq;
         void OnDestroy()
         {
             CleanupResources();
+            OnGameOver -= HandleGameOver;
         }
 
         #endregion
@@ -135,6 +142,19 @@ using System.Linq;
             if (uiManager == null) uiManager = FindFirstObjectByType<InGameUIManager>();
             if (turretControl == null) turretControl = FindFirstObjectByType<TerretControl>();
             if (spawnManager == null) spawnManager = FindFirstObjectByType<SpawnManager>();
+            
+            if (caffewall != null)
+            {
+                caffeWallHealth = caffewall.GetComponent<CaffeWallHealth>();
+                if (caffeWallHealth == null)
+                {
+                    Debug.LogError("[GameManager] caffewall에 CaffeWallHealth 컴포넌트가 없습니다!");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("[GameManager] caffewall GameObject가 할당되지 않았습니다.");
+            }
         }
 
         private async UniTask InitializeGameAsync(CancellationToken cancellationToken)
@@ -142,6 +162,11 @@ using System.Linq;
             try
             {
                 await UniTask.Yield(cancellationToken);
+                
+                if (caffeWallHealth != null)
+                {
+                    caffeWallHealth.OnDied += HandleCaffeWallDeath;
+                }
                 
                 if (!ValidateWaveData())
                 {
@@ -381,6 +406,16 @@ using System.Linq;
         }
 
         #endregion
+        
+        #region Wall Management
+
+        private void HandleCaffeWallDeath()
+        {
+            Debug.Log("[GameManager] 벽이 파괴되었습니다. 게임 오버를 시작합니다.");
+            TriggerGameOver();
+        }
+
+        #endregion
 
         #region 보상 및 계산
 
@@ -425,6 +460,14 @@ using System.Linq;
             if (isGameActive)
             {
                 EndGameAsync(false, cancellationTokenSource.Token).Forget();
+            }
+        }
+
+        private void HandleGameOver()
+        {
+            if (uiManager != null && DataManger.IsAvailable())
+            {
+                uiManager.ShowGameOverPanel(DataManger.Instance.GetAllCurrencyInfo().coin);
             }
         }
 
@@ -573,6 +616,10 @@ using System.Linq;
             if (spawnManager != null)
             {
                 SpawnManager.OnEnemyDestroyed -= OnEnemyKilledHandler;
+            }
+            if (caffeWallHealth != null)
+            {
+                caffeWallHealth.OnDied -= HandleCaffeWallDeath;
             }
             cancellationTokenSource?.Cancel();
             cancellationTokenSource?.Dispose();
