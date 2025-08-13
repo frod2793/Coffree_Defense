@@ -4,7 +4,6 @@ using System.Threading;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine.EventSystems;
 
 /// <summary>
     /// 게임의 핵심 루프를 관리하는 매니저

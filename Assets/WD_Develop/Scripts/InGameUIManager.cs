@@ -6,6 +6,7 @@ using Cysharp.Threading.Tasks;
 using System.Threading;
 using TMPro;
 using WD_Develop.Scripts;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// 인게임 UI 관리자 - UniTask 기반 비동기 처리로 최적화
@@ -13,7 +14,6 @@ using WD_Develop.Scripts;
 /// </summary>
 public class InGameUIManager : MonoBehaviour
 {
-    #region 필드 및 속성
 
     // 포탑 조합에 대한 결과오브젝트는 scriptable object로 관리합니다.
     // 조합 식 클래스를 따로 생성하여 조합에 따라 포탑의 프리펙 을 변경 
@@ -52,6 +52,7 @@ public class InGameUIManager : MonoBehaviour
     [SerializeField] private Button restartBtn;
     [SerializeField] private Button gotoLobbyBtn;
     [SerializeField] private TMP_Text getCoinText;
+    [SerializeField] private string sceneNameLobby;
 
     [Header("드래그 오브젝트")] [SerializeField] private List<Image> images;
     [SerializeField] private List<GameObject> PrefabList;
@@ -102,8 +103,6 @@ public class InGameUIManager : MonoBehaviour
     // 성능 최적화를 위한 캐시
     private DataManger.CurrencyInfo lastCurrencyInfo;
     private bool hasDataMangerEvents = false;
-
-    #endregion
 
     #region 유니티 생명주기
 
@@ -1271,21 +1270,33 @@ public class InGameUIManager : MonoBehaviour
         {
             gameOverPanel.SetActive(true);
         }
+
         if (getCoinText != null)
         {
             getCoinText.text = $"획득 코인: {finalCoin:N0}";
         }
 
-        // 버튼 리스너 추가 (임시)
+        // 버튼 리스너 추가
         if (restartBtn != null)
         {
             restartBtn.onClick.RemoveAllListeners();
-            restartBtn.onClick.AddListener(() => Debug.Log("재시작 버튼 클릭!")); // TODO: 재시작 로직 구현
+            restartBtn.onClick.AddListener(() =>
+            {
+                // 현재 씬을 다시 로드하여 게임을 재시작합니다.
+                var currentScene = SceneManager.GetActiveScene().name;
+                SceneLoader.Instance.LoadScene(currentScene);
+                Debug.Log($"재시작 버튼 클릭! 현재 씬({currentScene})을 다시 로드합니다.");
+            });
         }
+
         if (gotoLobbyBtn != null)
         {
             gotoLobbyBtn.onClick.RemoveAllListeners();
-            gotoLobbyBtn.onClick.AddListener(() => Debug.Log("로비로 이동 버튼 클릭!")); // TODO: 로비 이동 로직 구현
+            gotoLobbyBtn.onClick.AddListener(() =>
+            {
+                SceneLoader.Instance.LoadScene(sceneNameLobby);
+                Debug.Log("로비로 이동 버튼 클릭!");
+            });
         }
     }
     #endregion

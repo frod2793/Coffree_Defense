@@ -1153,24 +1153,6 @@ MonoBehaviour:
   hydroSpawnPoint: {fileID: 932622579489520671}
   hydroPressCost: 10
   hydroPressCooldown: 4
---- !u!1 &545637144 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 5165064158318538687, guid: f8c2421644b4381458d7650ee56d5d2c, type: 3}
-  m_PrefabInstance: {fileID: 1487829640}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &545637148
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 545637144}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ab1ded83ae68341a8bbd6946f03faa56, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  maxHealth: 1000
 --- !u!1 &553231775
 GameObject:
   m_ObjectHideFlags: 0
@@ -1609,7 +1591,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: -14, y: 71}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &907442195
@@ -1674,8 +1656,8 @@ MonoBehaviour:
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
-  m_HorizontalAlignment: 1
-  m_VerticalAlignment: 256
+  m_HorizontalAlignment: 2
+  m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
   m_wordSpacing: 0
@@ -2486,8 +2468,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 160, y: 30}
+  m_AnchoredPosition: {x: 97, y: -145}
+  m_SizeDelta: {x: 160, y: 160}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1104360233
 MonoBehaviour:
@@ -3241,6 +3223,10 @@ PrefabInstance:
       value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 5165064158318538687, guid: f8c2421644b4381458d7650ee56d5d2c, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5165064158318538687, guid: f8c2421644b4381458d7650ee56d5d2c, type: 3}
       propertyPath: m_TagString
       value: CafeWall
       objectReference: {fileID: 0}
@@ -3312,9 +3298,6 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 5165064158318538687, guid: f8c2421644b4381458d7650ee56d5d2c, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 545637148}
     - targetCorrespondingSourceObject: {fileID: 52868815045656741, guid: f8c2421644b4381458d7650ee56d5d2c, type: 3}
       insertIndex: -1
       addedObject: {fileID: 143403853}
@@ -3492,8 +3475,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 160, y: 30}
+  m_AnchoredPosition: {x: -174, y: -140}
+  m_SizeDelta: {x: 160, y: 160}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1538190248
 MonoBehaviour:
@@ -4152,8 +4135,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_AnchoredPosition: {x: 2.1898, y: -2.1898}
+  m_SizeDelta: {x: 768.0604, y: 768.0604}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1854156801
 MonoBehaviour:
@@ -4840,6 +4823,7 @@ MonoBehaviour:
   restartBtn: {fileID: 1104360235}
   gotoLobbyBtn: {fileID: 1538190250}
   getCoinText: {fileID: 907442196}
+  sceneNameLobby: LobbyTest
   images:
   - {fileID: 1744961114}
   - {fileID: 2048294098}
