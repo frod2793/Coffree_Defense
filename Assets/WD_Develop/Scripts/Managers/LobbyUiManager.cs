@@ -131,7 +131,7 @@ namespace WD_Develop.Scripts.Managers
             Debug.Log("게임을 시작합니다!");
 
             // 게임 씬으로 이동 (실제 게임 씬 이름으로 변경 필요)
-            // SceneManager.LoadScene("YourGameSceneName");
+            SceneLoader.Instance.LoadScene("InGameTest");
 
             // 현재는 팝업을 닫기만 함
             HideBuyPopup();
