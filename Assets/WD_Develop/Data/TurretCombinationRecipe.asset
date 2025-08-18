@@ -19,3 +19,15 @@ MonoBehaviour:
   - baseTurretPrefab: {fileID: 8567956659253494376, guid: 4157bfb434e7446f8a56db8483b32606, type: 3}
     requiredItemPrefab: {fileID: 6719897262539787490, guid: 2ec4b62f209005d4aa41e24de8bee184, type: 3}
     resultTurretPrefab: {fileID: 823236186940758608, guid: 8f561869334279b41b6d75a35c691822, type: 3}
+  - baseTurretPrefab: {fileID: 8567956659253494376, guid: 4157bfb434e7446f8a56db8483b32606, type: 3}
+    requiredItemPrefab: {fileID: 6719897262539787490, guid: 2ec4b62f209005d4aa41e24de8bee184, type: 3}
+    resultTurretPrefab: {fileID: 823236186940758608, guid: 8f561869334279b41b6d75a35c691822, type: 3}
+  - baseTurretPrefab: {fileID: 8567956659253494376, guid: 4157bfb434e7446f8a56db8483b32606, type: 3}
+    requiredItemPrefab: {fileID: 6719897262539787490, guid: 2ec4b62f209005d4aa41e24de8bee184, type: 3}
+    resultTurretPrefab: {fileID: 823236186940758608, guid: 8f561869334279b41b6d75a35c691822, type: 3}
+  - baseTurretPrefab: {fileID: 8567956659253494376, guid: 4157bfb434e7446f8a56db8483b32606, type: 3}
+    requiredItemPrefab: {fileID: 6719897262539787490, guid: 2ec4b62f209005d4aa41e24de8bee184, type: 3}
+    resultTurretPrefab: {fileID: 823236186940758608, guid: 8f561869334279b41b6d75a35c691822, type: 3}
+  - baseTurretPrefab: {fileID: 8567956659253494376, guid: 4157bfb434e7446f8a56db8483b32606, type: 3}
+    requiredItemPrefab: {fileID: 6719897262539787490, guid: 2ec4b62f209005d4aa41e24de8bee184, type: 3}
+    resultTurretPrefab: {fileID: 823236186940758608, guid: 8f561869334279b41b6d75a35c691822, type: 3}
