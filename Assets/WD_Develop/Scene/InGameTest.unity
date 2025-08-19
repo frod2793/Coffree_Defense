@@ -3943,7 +3943,7 @@ MonoBehaviour:
   turretBonePrefab: {fileID: 7483472109578787206, guid: 7690a061904673545b6eb91d014e5fea, type: 3}
   turretSpawnPoint: {fileID: 2019644341}
   combinationRecipe: {fileID: 11400000, guid: 614e2af73a929de4d91d3e8862b8327d, type: 2}
-  itemPreviewHeight: 0
+  itemPreviewHeight: 0.25
   combinedTurretSpawnHeight: 0
 --- !u!1 &1812396976
 GameObject:
