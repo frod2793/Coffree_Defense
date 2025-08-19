@@ -1,69 +1,76 @@
 using UnityEngine;
 using UnityEngine.Pool;
+using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
+using System;
 
 namespace WD_Develop.Scripts.Terrets
 {
-    /// <summary>
-    /// 화염 파티클의 로직을 처리하는 클래스입니다.
-    /// Laser.cs와 거의 동일하며, 파티클 충돌로 데미지를 처리합니다.
-    /// </summary>
     [RequireComponent(typeof(ParticleSystem))]
     public class Flame : MonoBehaviour
     {
+        [SerializeField]
         private float damagePerParticle;
         private IObjectPool<Flame> pool;
         private ParticleSystem flameParticles;
 
+        private List<ParticleCollisionEvent> collisionEvents;
         private const string EnemyTag = "Enemy";
 
         private void Awake()
         {
             flameParticles = GetComponent<ParticleSystem>();
+            collisionEvents = new List<ParticleCollisionEvent>();
         }
 
-        /// <summary>
-        /// FlameTurret의 오브젝트 풀에서 화염을 처음 생성하거나 가져올 때 호출됩니다.
-        /// </summary>
-        /// <param name="damage">파티클 입자 하나당 입힐 데미지</param>
-        /// <param name="objectPool">자신을 관리하는 오브젝트 풀</param>
         public void Initialize(float damage, IObjectPool<Flame> objectPool)
         {
             this.damagePerParticle = damage;
             this.pool = objectPool;
         }
 
-        /// <summary>
-        /// 화염 발사를 멈추고, 파티클이 모두 사라진 후 오브젝트 풀에 자신을 반환합니다.
-        /// </summary>
-        public void StopAndRelease()
+        public void StartEmitting()
         {
-            // 파티클 시스템의 재생을 멈춥니다. (이미 재생중인 파티클은 사라질 때까지 유지됩니다)
-            flameParticles.Stop();
+            flameParticles.Play();
+        }
+
+        public async void StopAndRelease()
+        {
+            flameParticles.Stop(true, ParticleSystemStopBehavior.StopEmitting);
             
-            // 파티클의 최대 수명만큼 기다린 후 풀에 반환합니다.
-            float releaseDelay = flameParticles.main.startLifetime.constantMax;
-            Invoke(nameof(ReleaseToPool), releaseDelay);
-        }
-
-        private void ReleaseToPool()
-        {
-            // 오브젝트 풀이 할당되어 있을 경우에만 반환 로직을 실행합니다.
-            pool?.Release(this);
+            try
+            {
+                await UniTask.Delay(TimeSpan.FromSeconds(flameParticles.main.startLifetime.constantMax), cancellationToken: this.GetCancellationTokenOnDestroy());
+                pool?.Release(this);
+            }
+            catch (OperationCanceledException)
+            {
+                // 작업 취소는 정상적인 상황이므로 예외를 무시합니다.
+            }
         }
 
         /// <summary>
-        /// 파티클이 다른 콜라이더와 충돌할 때마다 호출됩니다.
+        /// 최종 최적화: 데미지를 일괄 처리하여 TakeDamage() 호출을 프레임당 한 번으로 줄입니다.
         /// </summary>
-        void OnParticleCollision(GameObject other)
+        private void OnParticleCollision(GameObject other)
         {
-            if (other.CompareTag(EnemyTag))
+            if (!other.CompareTag(EnemyTag) || !other.TryGetComponent<EnemyAdvanced>(out var enemy))
+                return;
+
+            int numCollisionEvents = flameParticles.GetCollisionEvents(other, collisionEvents);
+
+            // 해당 프레임에 충돌한 모든 파티클의 총 데미지를 계산합니다.
+            if (damagePerParticle == 0 )
             {
-                // Bullet.cs와 동일하게 EnemyAdvanced 컴포넌트를 직접 찾아 데미지를 입힙니다.
-                var enemy = other.GetComponent<EnemyAdvanced>();
-                if (enemy != null)
-                {
-                    enemy.TakeDamage(damagePerParticle);
-                }
+                damagePerParticle = 1;
+            }
+            
+            float totalDamage = numCollisionEvents * damagePerParticle;
+
+            // 계산된 총 데미지를 한 번에 전달합니다.
+            if (totalDamage > 0)
+            {
+                enemy.TakeDamage(totalDamage);
             }
         }
     }

@@ -4844,7 +4844,7 @@ GameObject:
   - component: {fileID: 7212285832888557706}
   - component: {fileID: 5983232832368108702}
   - component: {fileID: 1260262680682125493}
-  - component: {fileID: 40488487197648259}
+  - component: {fileID: 1768953123334977071}
   m_Layer: 0
   m_Name: vfx_Flamethrower_01
   m_TagString: Untagged
@@ -8597,7 +8597,7 @@ ParticleSystem:
     m_Bounce:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0
+      scalar: 0.001
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -8725,12 +8725,7 @@ ParticleSystem:
   SubModule:
     serializedVersion: 2
     enabled: 0
-    subEmitters:
-    - serializedVersion: 3
-      emitter: {fileID: 0}
-      type: 0
-      properties: 0
-      emitProbability: 1
+    subEmitters: []
   LightsModule:
     enabled: 0
     ratio: 0
@@ -9100,9 +9095,9 @@ ParticleSystem:
         m_NumColorKeys: 2
         m_NumAlphaKeys: 2
   CustomDataModule:
-    enabled: 0
-    mode0: 0
-    vectorComponentCount0: 4
+    enabled: 1
+    mode0: 1
+    vectorComponentCount0: 2
     color0:
       serializedVersion: 2
       minMaxState: 0
@@ -9226,7 +9221,7 @@ ParticleSystem:
     vector0_1:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0
+      scalar: 6000
       minScalar: 0
       maxCurve:
         serializedVersion: 2
@@ -9669,7 +9664,7 @@ ParticleSystem:
         m_PostInfinity: 2
         m_RotationOrder: 4
     vectorLabel1_3: W
---- !u!114 &40488487197648259
+--- !u!114 &1768953123334977071
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -9681,6 +9676,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e8afff47737774a3384c64eb1d082faa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  damagePerParticle: 10
 --- !u!1 &8776146644004418828
 GameObject:
   m_ObjectHideFlags: 0
@@ -9692,6 +9688,7 @@ GameObject:
   - component: {fileID: 3578935019304643391}
   - component: {fileID: 227124197536107516}
   - component: {fileID: 8950552016250745097}
+  - component: {fileID: 7776600516650971067}
   m_Layer: 0
   m_Name: Flames
   m_TagString: Untagged
@@ -13365,7 +13362,7 @@ ParticleSystem:
     m_Bounce:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 1
+      scalar: 0.001
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -13477,7 +13474,7 @@ ParticleSystem:
     maxCollisionShapes: 256
     quality: 0
     voxelSize: 0.5
-    collisionMessages: 0
+    collisionMessages: 1
     collidesWithDynamic: 1
     interiorCollisions: 0
   TriggerModule:
@@ -14514,3 +14511,16 @@ ParticleSystemRenderer:
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
   m_MaskInteraction: 0
+--- !u!114 &7776600516650971067
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8776146644004418828}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8afff47737774a3384c64eb1d082faa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  damagePerParticle: 0

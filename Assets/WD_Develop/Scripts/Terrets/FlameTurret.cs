@@ -5,17 +5,11 @@ using System.Threading;
 
 namespace WD_Develop.Scripts.Terrets
 {
-    /// <summary>
-    /// 화염방사 터렛입니다.
-    /// LaserTurret과 NormalTurret과 DoubleShotTurret의 구조를 참고하여 구현되었습니다.
-    /// </summary>
     [RequireComponent(typeof(BoxCollider))]
     public class FlameTurret : TurretBase
     {
         [Header("화염방사 터렛 설정")]
-        [Tooltip("발사할 화염 파티클 프리팹입니다. Flame 스크립트를 포함해야 합니다.")]
         [SerializeField] private Flame flamePrefab;
-        [Tooltip("화염이 발사될 위치입니다.")]
         [SerializeField] private Transform firePoint;
 
         [Header("성능 설정")]
@@ -82,23 +76,22 @@ namespace WD_Develop.Scripts.Terrets
 
         #region 공격 로직
 
+        /// <summary>
+        /// 최적화: 타겟 유무에 따라 발사 상태를 변경하는 로직을 개선하여 가독성을 높입니다.
+        /// </summary>
         private void UpdateAttackLogic()
         {
-            if (target != null)
+            bool shouldBeFiring = (target != null);
+
+            if (shouldBeFiring && !isFiring)
             {
                 ChangeState(TerretState.Active);
-                if (!isFiring)
-                {
-                    StartFiring();
-                }
+                StartFiring();
             }
-            else
+            else if (!shouldBeFiring && isFiring)
             {
                 ChangeState(TerretState.Idle);
-                if (isFiring)
-                {
-                    StopFiring();
-                }
+                StopFiring();
             }
         }
 
@@ -113,6 +106,7 @@ namespace WD_Develop.Scripts.Terrets
             {
                 currentFlameInstance = flamePool.Get();
                 currentFlameInstance.Initialize(attackPower, flamePool);
+                currentFlameInstance.StartEmitting();
             }
         }
 
@@ -130,15 +124,13 @@ namespace WD_Develop.Scripts.Terrets
 
         private Flame CreateFlame()
         {
-            Flame flame = Instantiate(flamePrefab, firePoint.position, firePoint.rotation, firePoint);
-            return flame;
+            return Instantiate(flamePrefab, firePoint.position, firePoint.rotation, firePoint);
         }
 
         private void OnGetFromPool(Flame flame)
         {
             flame.gameObject.SetActive(true);
             flame.transform.SetPositionAndRotation(firePoint.position, firePoint.rotation);
-            flame.GetComponent<ParticleSystem>().Play();
         }
 
         private void OnReleaseToPool(Flame flame)

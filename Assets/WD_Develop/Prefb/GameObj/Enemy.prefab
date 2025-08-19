@@ -115,6 +115,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: H_worker_m_01
       objectReference: {fileID: 0}
+    - target: {fileID: 7134025301536009320, guid: fdb6c0a8840667b40944a6d19c6c3cd0, type: 3}
+      propertyPath: m_TagString
+      value: Enemy
+      objectReference: {fileID: 0}
     - target: {fileID: 7515090070949574354, guid: fdb6c0a8840667b40944a6d19c6c3cd0, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

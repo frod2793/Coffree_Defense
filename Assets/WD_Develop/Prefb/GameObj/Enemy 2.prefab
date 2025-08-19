@@ -155,6 +155,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: H_worker_w_01
       objectReference: {fileID: 0}
+    - target: {fileID: 6857594762484411564, guid: a6bc677e62a54f748af2dcfda1a76e2d, type: 3}
+      propertyPath: m_TagString
+      value: Enemy
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
