@@ -12,7 +12,7 @@ public class TurretCombinationRecipe : ScriptableObject
         public TurretBase baseTurretPrefab;
 
         [Tooltip("조합에 필요한 재료 아이템 프리팹")]
-        public ItemA requiredItemPrefab;
+        public CoffeBean requiredItemPrefab;
 
         [Tooltip("조합 결과로 생성될 터렛 프리팹")]
         public TurretBase resultTurretPrefab;
@@ -24,7 +24,7 @@ public class TurretCombinationRecipe : ScriptableObject
     /// <summary>
     /// 주어진 터렛과 아이템에 맞는 조합 결과를 찾습니다.
     /// </summary>
-    public TurretBase GetCombinationResult(TurretBase turret, ItemA item)
+    public TurretBase GetCombinationResult(TurretBase turret, CoffeBean item)
     {
         if (recipes == null || recipes.Count == 0)
         {
