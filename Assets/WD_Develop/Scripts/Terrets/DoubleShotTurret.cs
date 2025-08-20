@@ -148,7 +148,7 @@ public class DoubleShotTurret : TurretBase
         if (bulletGo == null) return;
 
         EffectManager.Instance.PlayEffect(EffectType.TurretShoot, firePoint.position);
-        
+        SoundManager.Instance.PlaySound(AudioMixerType.SFX, "TowerAttack");
         ConfigureBullet(bulletGo, firePoint, direction);
     }
 
