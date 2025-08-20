@@ -118,6 +118,7 @@ using System.Linq;
         {
             cancellationTokenSource = new CancellationTokenSource();
             await InitializeGameAsync(cancellationTokenSource.Token);
+            SoundManager.Instance.PlaySound(AudioMixerType.BGM, "InGameReady1", true);
         }
 
         void Update()
@@ -269,15 +270,12 @@ using System.Linq;
                     DataManger.Instance.AddTP(tpToGive);
                     Debug.Log($"[GameManager] 웨이브 {CurrentWave} 준비: TP {tpToGive} 지급");
                 }
-                await StartWaveAsync(cancellationToken);
             }
-            else
-            {
-                ChangeGameState(GameState.Preparing);
-                preparationTimer = preparationTime;
-                await UniTask.Yield(cancellationToken);
-                Debug.Log($"[GameManager] 웨이브 {CurrentWave} 준비 시작 ({preparationTime}초)");
-            }
+
+            ChangeGameState(GameState.Preparing);
+            preparationTimer = preparationTime;
+            await UniTask.Yield(cancellationToken);
+            Debug.Log($"[GameManager] 웨이브 {CurrentWave} 준비 시작 ({preparationTime}초)");
         }
 
         private async UniTask StartWaveAsync(CancellationToken cancellationToken)
