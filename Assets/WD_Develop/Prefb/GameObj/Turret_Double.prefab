@@ -291,6 +291,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: e25fd658ccf5cf14ca79f890b7ae29db, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 78afde3026053fb449d2adcfe2875ab8, type: 2}
+    - target: {fileID: -5754084199372789682, guid: e25fd658ccf5cf14ca79f890b7ae29db, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: -3996760141626369306, guid: 310bb0b8e8631b949a5418655a435273, type: 3}
     - target: {fileID: 919132149155446097, guid: e25fd658ccf5cf14ca79f890b7ae29db, type: 3}
       propertyPath: m_Name
       value: Turret_Head
@@ -389,6 +397,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: e25fd658ccf5cf14ca79f890b7ae29db, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 78afde3026053fb449d2adcfe2875ab8, type: 2}
+    - target: {fileID: -5754084199372789682, guid: e25fd658ccf5cf14ca79f890b7ae29db, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: -3996760141626369306, guid: 310bb0b8e8631b949a5418655a435273, type: 3}
     - target: {fileID: 919132149155446097, guid: e25fd658ccf5cf14ca79f890b7ae29db, type: 3}
       propertyPath: m_Name
       value: Turret_Head (1)
@@ -482,6 +498,22 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: 37d93919e7c900842b969f9e02ddc37c, type: 3}
+      propertyPath: m_Materials.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: 37d93919e7c900842b969f9e02ddc37c, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 78afde3026053fb449d2adcfe2875ab8, type: 2}
+    - target: {fileID: -7511558181221131132, guid: 37d93919e7c900842b969f9e02ddc37c, type: 3}
+      propertyPath: 'm_Materials.Array.data[1]'
+      value: 
+      objectReference: {fileID: 2100000, guid: d7452bbc13e892f43893ec2ac3b78fcb, type: 2}
+    - target: {fileID: -5754084199372789682, guid: 37d93919e7c900842b969f9e02ddc37c, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: -3855091200838334654, guid: c3b431c044426b7418575baf289ab30e, type: 3}
     - target: {fileID: 919132149155446097, guid: 37d93919e7c900842b969f9e02ddc37c, type: 3}
       propertyPath: m_Name
       value: Turret_Body
