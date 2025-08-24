@@ -441,13 +441,9 @@ PrefabInstance:
       propertyPath: m_Name
       value: 'Turret_Normal '
       objectReference: {fileID: 0}
-    - target: {fileID: 2954300113465931911, guid: 4157bfb434e7446f8a56db8483b32606, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 5636764226099140884, guid: 4157bfb434e7446f8a56db8483b32606, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -6.454
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5636764226099140884, guid: 4157bfb434e7446f8a56db8483b32606, type: 3}
       propertyPath: m_LocalPosition.y
@@ -455,7 +451,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5636764226099140884, guid: 4157bfb434e7446f8a56db8483b32606, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 3.33
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5636764226099140884, guid: 4157bfb434e7446f8a56db8483b32606, type: 3}
       propertyPath: m_LocalRotation.w
@@ -929,7 +925,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 36.939426, y: 0.2161}
-  m_SizeDelta: {x: 100.3, y: 50}
+  m_SizeDelta: {x: 132.2, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &192274030
 MonoBehaviour:
@@ -1648,7 +1644,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 31.5947, y: 0}
-  m_SizeDelta: {x: 100.3, y: 50}
+  m_SizeDelta: {x: 132.2, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &485350363
 GameObject:
@@ -2597,7 +2593,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 39.11733, y: 0.3761}
-  m_SizeDelta: {x: 100.3, y: 50}
+  m_SizeDelta: {x: 132.2, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &969382262
 MonoBehaviour:
@@ -4966,7 +4962,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 139620161053258030, guid: 41149d12e507ea44380d2b342d51ae1a, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -2.955
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 139620161053258030, guid: 41149d12e507ea44380d2b342d51ae1a, type: 3}
       propertyPath: m_LocalPosition.y
@@ -4974,7 +4970,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 139620161053258030, guid: 41149d12e507ea44380d2b342d51ae1a, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 3.33
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 139620161053258030, guid: 41149d12e507ea44380d2b342d51ae1a, type: 3}
       propertyPath: m_LocalRotation.w
@@ -5007,10 +5003,6 @@ PrefabInstance:
     - target: {fileID: 2923906373608709400, guid: 41149d12e507ea44380d2b342d51ae1a, type: 3}
       propertyPath: m_Name
       value: Turret_Tripple
-      objectReference: {fileID: 0}
-    - target: {fileID: 2923906373608709400, guid: 41149d12e507ea44380d2b342d51ae1a, type: 3}
-      propertyPath: m_IsActive
-      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -5123,13 +5115,9 @@ PrefabInstance:
       propertyPath: m_Name
       value: Turret_Double
       objectReference: {fileID: 0}
-    - target: {fileID: 2954300113465931911, guid: 8f561869334279b41b6d75a35c691822, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 5636764226099140884, guid: 8f561869334279b41b6d75a35c691822, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -3.688
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5636764226099140884, guid: 8f561869334279b41b6d75a35c691822, type: 3}
       propertyPath: m_LocalPosition.y
@@ -5137,7 +5125,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5636764226099140884, guid: 8f561869334279b41b6d75a35c691822, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 3.33
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5636764226099140884, guid: 8f561869334279b41b6d75a35c691822, type: 3}
       propertyPath: m_LocalRotation.w
@@ -5532,7 +5520,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 40, y: 0}
-  m_SizeDelta: {x: 100.3, y: 50}
+  m_SizeDelta: {x: 132.2, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1854971458
 MonoBehaviour:
@@ -5800,13 +5788,9 @@ PrefabInstance:
       propertyPath: m_Name
       value: Turret_Laser
       objectReference: {fileID: 0}
-    - target: {fileID: 3540378246090522458, guid: c4e82e10c975f467ebe1cbe5b5fc2143, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 8430867094104722908, guid: c4e82e10c975f467ebe1cbe5b5fc2143, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -5.33
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8430867094104722908, guid: c4e82e10c975f467ebe1cbe5b5fc2143, type: 3}
       propertyPath: m_LocalPosition.y
@@ -5814,7 +5798,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8430867094104722908, guid: c4e82e10c975f467ebe1cbe5b5fc2143, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 3.33
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8430867094104722908, guid: c4e82e10c975f467ebe1cbe5b5fc2143, type: 3}
       propertyPath: m_LocalRotation.w
@@ -6071,7 +6055,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 3851787433028349978, guid: c34fdfb91efb045868355bfad4c03a9f, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -4.216
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3851787433028349978, guid: c34fdfb91efb045868355bfad4c03a9f, type: 3}
       propertyPath: m_LocalPosition.y
@@ -6079,7 +6063,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3851787433028349978, guid: c34fdfb91efb045868355bfad4c03a9f, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 3.33
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3851787433028349978, guid: c34fdfb91efb045868355bfad4c03a9f, type: 3}
       propertyPath: m_LocalRotation.w
@@ -6112,10 +6096,6 @@ PrefabInstance:
     - target: {fileID: 5876644681527831708, guid: c34fdfb91efb045868355bfad4c03a9f, type: 3}
       propertyPath: m_Name
       value: Turret_FlameThrow
-      objectReference: {fileID: 0}
-    - target: {fileID: 5876644681527831708, guid: c34fdfb91efb045868355bfad4c03a9f, type: 3}
-      propertyPath: m_IsActive
-      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -6233,7 +6213,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 29.797913, y: 0}
-  m_SizeDelta: {x: 100.3, y: 50}
+  m_SizeDelta: {x: 132.2, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1979180909
 MonoBehaviour:
@@ -6571,7 +6551,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7483472109578787206, guid: 7690a061904673545b6eb91d014e5fea, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -6710,7 +6690,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 30.9, y: 0}
-  m_SizeDelta: {x: 100.3, y: 50}
+  m_SizeDelta: {x: 132.2, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2096875594
 MonoBehaviour:
@@ -6945,7 +6925,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 3371015207723883382, guid: a684a50cff2b5c846b57da944c592911, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -6.454
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3371015207723883382, guid: a684a50cff2b5c846b57da944c592911, type: 3}
       propertyPath: m_LocalPosition.y
@@ -6953,7 +6933,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3371015207723883382, guid: a684a50cff2b5c846b57da944c592911, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 5.539
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3371015207723883382, guid: a684a50cff2b5c846b57da944c592911, type: 3}
       propertyPath: m_LocalRotation.w
@@ -6986,10 +6966,6 @@ PrefabInstance:
     - target: {fileID: 8762530062119883661, guid: a684a50cff2b5c846b57da944c592911, type: 3}
       propertyPath: m_Name
       value: Turret_meghingun
-      objectReference: {fileID: 0}
-    - target: {fileID: 8762530062119883661, guid: a684a50cff2b5c846b57da944c592911, type: 3}
-      propertyPath: m_IsActive
-      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -8374,7 +8350,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 450186626308735293, guid: f25b847daadefe14d9f35f84b228c599, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -2.21
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 450186626308735293, guid: f25b847daadefe14d9f35f84b228c599, type: 3}
       propertyPath: m_LocalPosition.y
@@ -8382,7 +8358,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 450186626308735293, guid: f25b847daadefe14d9f35f84b228c599, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 6.09
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 450186626308735293, guid: f25b847daadefe14d9f35f84b228c599, type: 3}
       propertyPath: m_LocalRotation.w
@@ -8415,10 +8391,6 @@ PrefabInstance:
     - target: {fileID: 6728461631778508518, guid: f25b847daadefe14d9f35f84b228c599, type: 3}
       propertyPath: m_Name
       value: Turret_ice
-      objectReference: {fileID: 0}
-    - target: {fileID: 6728461631778508518, guid: f25b847daadefe14d9f35f84b228c599, type: 3}
-      propertyPath: m_IsActive
-      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

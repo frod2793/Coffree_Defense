@@ -39,37 +39,10 @@ public class SceneLoader : MonoBehaviour
             Destroy(gameObject);
         }
     }
-
+  
     public void LoadScene(string sceneName)
     {
-        // TransitionSettings가 할당되어 있고 TransitionManager가 존재하는 경우 전환 효과 사용
-        if (transitionSettings != null && useTransitionIfAvailable && TransitionManager.Instance() != null)
-        {
-            Debug.Log($"[SceneLoader] 전환 효과와 함께 씬 로드: {sceneName}");
-            OnSceneLoadStarted?.Invoke(sceneName);
-            TransitionManager.Instance().Transition(sceneName, transitionSettings, startDelay);
-        }
-        else
-        {
-            // TransitionSettings가 없거나 TransitionManager가 없는 경우 일반 씬 로드 사용
-            if (transitionSettings == null && showTransitionWarnings)
-            {
-                Debug.LogWarning($"[SceneLoader] TransitionSettings가 없어 일반 씬 전환을 사용합니다: {sceneName}");
-            }
-            
-            Debug.Log($"[SceneLoader] 일반 씬 로드: {sceneName}");
-            OnSceneLoadStarted?.Invoke(sceneName);
-            
-            // 딜레이 후 씬 로드
-            if (startDelay > 0)
-            {
-                StartCoroutine(LoadSceneWithDelay(sceneName, startDelay));
-            }
-            else
-            {
-                SceneManager.LoadScene(sceneName);
-            }
-        }
+        TransitionManager.Instance().Transition(sceneName, transitionSettings, startDelay);
     }
     
     /// <summary>

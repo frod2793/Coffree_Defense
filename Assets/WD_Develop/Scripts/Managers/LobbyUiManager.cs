@@ -319,10 +319,10 @@ namespace WD_Develop.Scripts.Managers
         private void OnDestroy()
         {
             // 메모리 누수 방지를 위한 DOTween 킬
-            buyPopUpPanel?.transform.DOKill();
-            playButton?.transform.DOKill();
-            buyTpButton?.transform.DOKill();
-            buyWwButton?.transform.DOKill();
+            if (buyPopUpPanel != null) buyPopUpPanel.transform.DOKill();
+            if (playButton != null) playButton.transform.DOKill();
+            if (buyTpButton != null) buyTpButton.transform.DOKill();
+            if (buyWwButton != null) buyWwButton.transform.DOKill();
         }
 
         #endregion
