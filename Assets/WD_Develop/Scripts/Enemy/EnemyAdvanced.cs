@@ -77,6 +77,11 @@ public class EnemyAdvanced : MonoBehaviour
     protected float knockbackDuration = 0f;
     protected float knockbackTimer = 0f;
 
+    // 상태 효과 관련
+    protected bool isSlowed = false;
+    protected float originalMoveSpeed;
+    protected CancellationTokenSource slowEffectCts;
+
     // 컴포넌트 캐시
     private InGameUIManager inGameUIManager;
     private HPBarController hpBarController;
@@ -978,6 +983,8 @@ public class EnemyAdvanced : MonoBehaviour
         var previousHealth = currentHealth;
         currentHealth = Mathf.Max(0, currentHealth - damage);
 
+        Debug.Log($"[{gameObject.name}] 데미지 {damage:F1} 받음. HP: {previousHealth:F1} → {currentHealth:F1}");
+
         OnHealthChanged?.Invoke(this, currentHealth);
         OnDamageTaken(damage, previousHealth, currentHealth);
 
@@ -992,7 +999,6 @@ public class EnemyAdvanced : MonoBehaviour
 
     protected virtual void OnDamageTaken(float damage, float previousHealth, float newHealth)
     {
-        Debug.Log($"[{gameObject.name}] 데미지 {damage:F1} 받음. HP: {previousHealth:F1} → {newHealth:F1}");
         // HP 바 업데이트
         hpBarController?.UpdateHP(newHealth, maxHealth);
     }
@@ -1047,6 +1053,59 @@ public class EnemyAdvanced : MonoBehaviour
         {
             EffectManager.Instance.PlayEffect(EffectType.EnemyDestroy, transform.position);
         }
+    }
+
+    #endregion
+
+    #region 상태 효과 시스템
+
+    /// <summary>
+    /// 적에게 둔화 효과를 적용합니다.
+    /// </summary>
+    public virtual void ApplySlowEffect(float slowPercentage, float duration)
+    {
+        if (isSlowed || !IsAlive) return;
+
+        slowEffectCts?.Cancel();
+        slowEffectCts = new CancellationTokenSource();
+
+        isSlowed = true;
+        originalMoveSpeed = moveSpeed;
+        moveSpeed *= (1f - slowPercentage);
+        
+        Debug.Log($"[{gameObject.name}] 둔화 효과 적용. 속도: {originalMoveSpeed:F1} -> {moveSpeed:F1}");
+
+        RevertSlowEffectAfterDelay(duration, slowEffectCts.Token).Forget();
+    }
+
+    private async UniTaskVoid RevertSlowEffectAfterDelay(float delay, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await UniTask.Delay(TimeSpan.FromSeconds(delay), cancellationToken: cancellationToken);
+            RemoveSlowEffect();
+        }
+        catch (OperationCanceledException)
+        {
+            // 둔화 효과가 외부에서 취소됨
+            Debug.Log($"[{gameObject.name}] 둔화 효과 중단됨.");
+        }
+    }
+
+    /// <summary>
+    /// 적의 둔화 효과를 제거합니다.
+    /// </summary>
+    public virtual void RemoveSlowEffect()
+    {
+        if (!isSlowed) return;
+
+        slowEffectCts?.Cancel();
+        slowEffectCts?.Dispose();
+        slowEffectCts = null;
+
+        moveSpeed = originalMoveSpeed;
+        isSlowed = false;
+        Debug.Log($"[{gameObject.name}] 둔화 효과 제거. 속도 복원: {moveSpeed:F1}");
     }
 
     #endregion
@@ -1193,6 +1252,8 @@ public class EnemyAdvanced : MonoBehaviour
     {
         cancellationTokenSource?.Cancel();
         cancellationTokenSource?.Dispose();
+        slowEffectCts?.Cancel();
+        slowEffectCts?.Dispose();
 
         Debug.Log($"[{gameObject.name}] 리소스 정리 완료");
     }

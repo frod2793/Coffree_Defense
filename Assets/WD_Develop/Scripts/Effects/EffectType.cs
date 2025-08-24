@@ -18,4 +18,7 @@
     
     // Bullet Effects
     BulletImpact,
+
+    // Status Effects
+    IceSlow, // 둔화 효과 (지속)
 }

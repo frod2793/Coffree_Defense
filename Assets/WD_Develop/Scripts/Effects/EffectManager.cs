@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections;
 using System;
+using WD_Develop.Scripts; // EnemyAdvanced 클래스가 있는 네임스페이스
 
 // EffectType과 프리팹, 지속시간을 인스펙터에서 매핑하기 위한 구조체
 [Serializable]
@@ -140,6 +141,20 @@ public class EffectManager : MonoBehaviour
             ReturnToPool(effectData.instance, effectData.prefab);
             activeLoopingEffects.Remove(owner);
         }
+    }
+
+    /// <summary>
+    /// 특정 적에게 적용된 둔화 효과(시각적, 기능적)를 중지합니다.
+    /// </summary>
+    public void StopSlowEffect(EnemyAdvanced enemy)
+    {
+        if (enemy == null) return;
+
+        // 시각적 이펙트 중지
+        StopLoopingEffect(enemy);
+
+        // 기능적 효과(속도 저하) 제거
+        enemy.RemoveSlowEffect();
     }
 
     #endregion
