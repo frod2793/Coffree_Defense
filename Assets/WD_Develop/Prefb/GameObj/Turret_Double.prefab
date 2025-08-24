@@ -135,7 +135,7 @@ MonoBehaviour:
   attackSpeed: 1
   maxHp: 100
   currentHp: 100
-  range: 15
+  range: 5
   rotationDuration: 0.3
   turretHead: {fileID: 2394605382532619774}
   enemyTag: Enemy

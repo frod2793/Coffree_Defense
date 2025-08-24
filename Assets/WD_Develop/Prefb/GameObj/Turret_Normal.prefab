@@ -135,7 +135,7 @@ MonoBehaviour:
   attackSpeed: 1
   maxHp: 100
   currentHp: 100
-  range: 20
+  range: 5
   rotationDuration: 0.3
   turretHead: {fileID: 2394605382532619774}
   enemyTag: Enemy
@@ -143,7 +143,7 @@ MonoBehaviour:
   hpBarOffset: {x: 0, y: -50, z: 0}
   bulletPrefab: {fileID: 9185332407487830785, guid: 6aa837a1bf957443fb6a3e3b11e0d763, type: 3}
   firePoint: {fileID: 5468265040733825125}
-  fireRate: 10
+  fireRate: 4
   bulletPoolMaxSize: 20
 --- !u!1 &6486274372940386237
 GameObject:

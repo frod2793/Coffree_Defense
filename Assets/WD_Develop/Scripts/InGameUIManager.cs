@@ -69,7 +69,7 @@ public class InGameUIManager : MonoBehaviour
     [Header("성능 설정")] [SerializeField] private float currencyUpdateInterval = 0.5f;
     [SerializeField] private int eventTriggerBatchSize = 5; // 이벤트 트리거 설정 시 프레임 분산 크기
 
-    [Header("게임 상태")] [SerializeField] private TextMeshProUGUI GameCountDownText; // 게임 카운트다운 텍스트
+    [Header("게임 상태")] [SerializeField] private TMP_Text GameCountDownText; // 게임 카운트다운 텍스트
     [SerializeField] private float countdownDuration = 10f; // 카운트다운 시간 (초)
     [SerializeField] private bool enableCountdown = true; // 카운트다운 활성화 여부
 

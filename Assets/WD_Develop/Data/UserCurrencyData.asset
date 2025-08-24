@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: UserCurrencyData
   m_EditorClassIdentifier: 
   coin: 50780
-  tp: 2892
+  tp: 2906
   waterPoint: 0
   clearStage: 0
