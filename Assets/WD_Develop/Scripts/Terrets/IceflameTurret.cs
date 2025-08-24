@@ -13,6 +13,7 @@ namespace WD_Develop.Scripts.Terrets
     {
         [Header("아이스플레임 터렛 설정")]
         [SerializeField] private Iceflame iceflamePrefab; // 아이스플레임 효과 프리팹
+        
         [SerializeField] private Transform firePoint;       // 발사 지점
         [SerializeField] private float slowAmount = 0.7f;   // 둔화율 (0.3 = 30%)
 

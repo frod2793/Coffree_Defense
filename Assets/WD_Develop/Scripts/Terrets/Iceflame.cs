@@ -9,24 +9,12 @@ namespace WD_Develop.Scripts.Terrets
     /// <summary>
     /// 화염과 냉기 효과를 결합하여, 파티클 충돌 시 적에게 지속 피해와 둔화 효과를 적용합니다.
     /// </summary>
-    [RequireComponent(typeof(ParticleSystem))]
     public class Iceflame : MonoBehaviour
     {
+        [SerializeField] private ParticleSystem collitderparticle;
         private float attackPower;
         private float slowAmount;
         private IObjectPool<Iceflame> pool;
-        private ParticleSystem iceflameParticleSystem;
-        private List<ParticleCollisionEvent> collisionEvents;
-
-        // 적별 마지막 피격 시간을 기록하여 DPS를 제어
-        private Dictionary<EnemyAdvanced, float> lastHitTimes = new Dictionary<EnemyAdvanced, float>();
-        private const float DAMAGE_INTERVAL = 1.0f; // 1초마다 데미지 적용
-
-        private void Awake()
-        {
-            iceflameParticleSystem = GetComponent<ParticleSystem>();
-            collisionEvents = new List<ParticleCollisionEvent>();
-        }
 
         /// <summary>
         /// 아이스플레임 효과를 초기화합니다.
@@ -36,7 +24,6 @@ namespace WD_Develop.Scripts.Terrets
             this.attackPower = power;
             this.slowAmount = slow;
             this.pool = objectPool;
-            lastHitTimes.Clear(); // 풀에서 재사용될 때 기록 초기화
         }
 
         /// <summary>
@@ -44,7 +31,7 @@ namespace WD_Develop.Scripts.Terrets
         /// </summary>
         public void StartEmitting()
         {
-            iceflameParticleSystem.Play();
+            collitderparticle.Play();
         }
 
         /// <summary>
@@ -52,12 +39,12 @@ namespace WD_Develop.Scripts.Terrets
         /// </summary>
         public async void StopAndRelease()
         {
-            iceflameParticleSystem.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+            collitderparticle.Stop(true, ParticleSystemStopBehavior.StopEmitting);
             
             try
             {
                 // 파티클의 최대 수명만큼 기다린 후 풀에 반환
-                await UniTask.Delay(TimeSpan.FromSeconds(iceflameParticleSystem.main.startLifetime.constantMax), cancellationToken: this.GetCancellationTokenOnDestroy());
+                await UniTask.Delay(TimeSpan.FromSeconds(collitderparticle.main.startLifetime.constantMax), cancellationToken: this.GetCancellationTokenOnDestroy());
                 pool?.Release(this);
             }
             catch (OperationCanceledException)
@@ -67,30 +54,22 @@ namespace WD_Develop.Scripts.Terrets
         }
 
         /// <summary>
-        /// 파티클이 적과 충돌했을 때 호출됩니다.
+        /// ColliderParticle로부터 충돌 이벤트를 받아 처리합니다.
         /// </summary>
-        private void OnParticleCollision(GameObject other)
+        public void HandleParticleCollision(GameObject other)
         {
             if (!other.TryGetComponent<EnemyAdvanced>(out var enemy))
-                return;
-
-            // 마지막 피격 시간 확인하여 DPS 제어
-            if (lastHitTimes.TryGetValue(enemy, out float lastHitTime))
             {
-                if (Time.time - lastHitTime < DAMAGE_INTERVAL)
-                {
-                    // 둔화 효과만 짧게 계속 적용
-                    enemy.ApplySlowEffect(slowAmount, 0.5f);
-                    Debug.Log($"[Iceflame] {enemy.name} 둔화 효과만 적용 (데미지 쿨다운)");
-                    return; // 데미지는 아직 적용하지 않음
-                }
+                // EnemyAdvanced 컴포넌트가 없는 오브젝트는 무시
+                return;
             }
 
-            // 데미지 적용 및 마지막 피격 시간 기록
-            Debug.Log($"[Iceflame] {enemy.name}에게 데미지 {attackPower} 및 둔화 효과 적용");
-            enemy.TakeDamage(attackPower);
+            // attackPower를 DPS로 간주하고, 프레임 시간(deltaTime)에 비례한 데미지를 적용합니다.
+            // 이렇게 하면 프레임 속도와 관계없이 일정한 DPS를 유지할 수 있습니다.
+            enemy.TakeDamage(attackPower * Time.deltaTime);
+            
+            // 둔화 효과는 짧은 시간 동안 지속적으로 갱신하여 효과가 끊기지 않도록 합니다.
             enemy.ApplySlowEffect(slowAmount, 0.5f);
-            lastHitTimes[enemy] = Time.time;
         }
     }
 }

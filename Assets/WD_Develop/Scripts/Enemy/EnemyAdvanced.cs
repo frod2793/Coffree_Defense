@@ -1064,17 +1064,25 @@ public class EnemyAdvanced : MonoBehaviour
     /// </summary>
     public virtual void ApplySlowEffect(float slowPercentage, float duration)
     {
-        if (isSlowed || !IsAlive) return;
+        if (!IsAlive) return;
 
+        // 이미 둔화 상태가 아니라면, 원래 속도를 저장합니다.
+        if (!isSlowed)
+        {
+            originalMoveSpeed = moveSpeed;
+        }
+
+        // 기존 둔화 효과 타이머가 있다면 취소하고 새로 시작합니다.
         slowEffectCts?.Cancel();
         slowEffectCts = new CancellationTokenSource();
 
         isSlowed = true;
-        originalMoveSpeed = moveSpeed;
-        moveSpeed *= (1f - slowPercentage);
+        // 항상 원래 속도 기준으로 감속을 계산하여 중첩 오류를 방지합니다.
+        moveSpeed = originalMoveSpeed * (1f - slowPercentage);
         
-        Debug.Log($"[{gameObject.name}] 둔화 효과 적용. 속도: {originalMoveSpeed:F1} -> {moveSpeed:F1}");
+        Debug.Log($"<color=cyan>[{gameObject.name}] ### 둔화 효과 적용/갱신 ### 속도: {originalMoveSpeed:F1} -> {moveSpeed:F1}, 지속시간: {duration}초</color>");
 
+        // 지정된 시간 후에 둔화 효과를 되돌리는 작업을 시작합니다.
         RevertSlowEffectAfterDelay(duration, slowEffectCts.Token).Forget();
     }
 
