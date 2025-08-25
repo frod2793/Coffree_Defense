@@ -34,6 +34,9 @@ public class TerretControl : MonoBehaviour
     [Header("조합 데이터")]
     [SerializeField] private TurretCombinationRecipe combinationRecipe; // 조합법 데이터베이스
     private TurretBase highlightedTurret; // 현재 하이라이트된 터렛
+
+    [Header("아이템 드래그 설정")]
+    [SerializeField] private float itemPreviewHeight = 0f; // 아이템 미리보기 높이
     private GameObject draggedItem; // 현재 드래그 중인 아이템의 프리팹 미리보기
     private GameObject selectedItemPrefab; // 현재 선택된 원본 아이템 프리팹
     private bool isDraggingItem = false; // 아이템을 드래그 중인지 여부
@@ -237,11 +240,11 @@ public class TerretControl : MonoBehaviour
             if (groundPlane.Raycast(ray, out float distance))
             {
                 Vector3 point = ray.GetPoint(distance);
-                draggedItem.transform.position = new Vector3(point.x, initialY, point.z);
+                draggedItem.transform.position = new Vector3(point.x, itemPreviewHeight, point.z);
             }
 
             // 터렛 위 충돌 감지 및 아웃라인 처리
-            if (selectedItemPrefab != null && selectedItemPrefab.GetComponent<ItemA>() != null)
+            if (selectedItemPrefab != null && selectedItemPrefab.GetComponent<CoffeBean>() != null)
             {
                 // Turret 레이어 체크
                 int turretLayer = LayerMask.NameToLayer("Turret");
@@ -283,10 +286,10 @@ public class TerretControl : MonoBehaviour
             Debug.Log($"터렛 감지: {turretBase.name} ({turretBase.GetType().Name})");
             
             // 조합 가능한지 확인
-            ItemA itemComponent = selectedItemPrefab.GetComponent<ItemA>();
+            CoffeBean itemComponent = selectedItemPrefab.GetComponent<CoffeBean>();
             if (itemComponent == null)
             {
-                Debug.LogError("선택된 프리팹에 ItemA 컴포넌트가 없습니다!");
+                Debug.LogError("선택된 프리팹에 CoffeBean 컴포넌트가 없습니다!");
                 return;
             }
             
@@ -409,7 +412,7 @@ public class TerretControl : MonoBehaviour
             {
                 Debug.Log($"드롭한 위치: 터렛({highlightedTurret.name})");
                 
-                if (selectedItemPrefab.TryGetComponent<ItemA>(out var item))
+                if (selectedItemPrefab.TryGetComponent<CoffeBean>(out var item))
                 {
                     // 조합 처리를 비동기로 실행
                     await ProcessCombinationAsync(item, cancellationToken);
@@ -443,7 +446,7 @@ public class TerretControl : MonoBehaviour
     /// <summary>
     /// 조합 처리를 비동기로 실행합니다.
     /// </summary>
-    private async UniTask ProcessCombinationAsync(ItemA item, CancellationToken cancellationToken)
+    private async UniTask ProcessCombinationAsync(CoffeBean item, CancellationToken cancellationToken)
     {
         // 조합 하이라이트 이펙트 제거
         HideCombinationEffect(highlightedTurret);
@@ -632,6 +635,7 @@ public class TerretControl : MonoBehaviour
         if (groundPlane.Raycast(ray, out float distance))
         {
             spawnPosition = ray.GetPoint(distance);
+            spawnPosition.y = itemPreviewHeight;
         }
         
         // 미리보기 오브젝트 생성

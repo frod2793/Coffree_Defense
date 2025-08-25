@@ -4,9 +4,10 @@ using System.Threading;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine.EventSystems;
 
-/// <summary>
+namespace WD_Develop.Scripts
+{
+    /// <summary>
     /// 게임의 핵심 루프를 관리하는 매니저
     ///  준비 시간 → 웨이브 전투 → 결과 처리 → 다음 웨이브 준비의 사이클을 관리합니다.
     /// </summary>
@@ -24,10 +25,10 @@ using UnityEngine.EventSystems;
             Paused          // 게임 일시정지
         }
 
-        private const float PREPARATION_TIME = 15f;
-        private const int INITIAL_TP_PER_WAVE = 3;
-        private const int BASE_COIN_REWARD = 50;
-        private const int TP_INCREMENT_PER_WAVE = 1;
+        private const float PreparationTime = 15f;
+        private const int InitialTpPerWave = 3;
+        private const int BaseCoinReward = 50;
+        private const int TpIncrementPerWave = 1;
 
         #endregion
 
@@ -41,9 +42,9 @@ using UnityEngine.EventSystems;
         [SerializeField] private StageDataSO stageData; // ScriptableObject로 웨이브 데이터 관리
 
         [Header("게임 설정")]
-        [SerializeField] private float preparationTime = PREPARATION_TIME;
-        [SerializeField] private int initialTPPerWave = INITIAL_TP_PER_WAVE;
-        [SerializeField] private int baseCoinReward = BASE_COIN_REWARD;
+        [SerializeField] private float preparationTime = PreparationTime;
+        [SerializeField] private int initialTpPerWave = InitialTpPerWave;
+        [SerializeField] private int baseCoinReward = BaseCoinReward;
 
         [Header("참조")]
         [SerializeField] private InGameUIManager uiManager;
@@ -56,11 +57,11 @@ using UnityEngine.EventSystems;
         [SerializeField] private int hydroPressCost = 100;
         [SerializeField] private float hydroPressCooldown = 10f;
 
-        private float lastHydroPressTime = 0f;
+        private float lastHydroPressTime;
         private List<HydroWaterPress> activeHydroPresses = new List<HydroWaterPress>();
 
-        public GameState currentState { get; private set; }
-        private int currentWaveIndex = 0;
+        public GameState CurrentState { get; private set; }
+        private int currentWaveIndex;
         private float preparationTimer;
         private bool isGameActive;
 
@@ -81,8 +82,8 @@ using UnityEngine.EventSystems;
         public int CurrentWave => currentWaveIndex + 1;
         public int TotalWaves => stageData != null ? stageData.waveDataList.Count : 0;
         public float PreparationTimeRemaining => preparationTimer;
-        public bool IsPreparationPhase => currentState == GameState.Preparing;
-        public bool IsFightingPhase => currentState == GameState.Fighting;
+        public bool IsPreparationPhase => CurrentState == GameState.Preparing;
+        public bool IsFightingPhase => CurrentState == GameState.Fighting;
         public int EnemiesKilled => enemiesKilled;
         public int TotalEnemies => totalEnemiesInWave;
 
@@ -119,6 +120,8 @@ using UnityEngine.EventSystems;
         {
             cancellationTokenSource = new CancellationTokenSource();
             await InitializeGameAsync(cancellationTokenSource.Token);
+            SoundManager.Instance.PlaySound(AudioMixerType.BGM, "InGameReady1", true);
+            
         }
 
         void Update()
@@ -198,6 +201,8 @@ using UnityEngine.EventSystems;
 
                 isGameActive = true;
                 Debug.Log($"[GameManager] 게임 초기화 완료. 시작 웨이브: {CurrentWave}");
+                
+                
             }
             catch (Exception ex)
             {
@@ -210,8 +215,8 @@ using UnityEngine.EventSystems;
             await UniTask.Yield(cancellationToken);
             if (DataManger.IsAvailable())
             {
-                DataManger.Instance.AddTP(initialTPPerWave);
-                Debug.Log($"[GameManager] 초기 TP {initialTPPerWave} 지급");
+                DataManger.Instance.AddTP(initialTpPerWave);
+                Debug.Log($"[GameManager] 초기 TP {initialTpPerWave} 지급");
             }
             else
             {
@@ -240,7 +245,7 @@ using UnityEngine.EventSystems;
 
         private void UpdateGameLoop()
         {
-            if (currentState == GameState.Preparing)
+            if (CurrentState == GameState.Preparing)
             {
                 UpdatePreparationPhase();
             }
@@ -266,19 +271,16 @@ using UnityEngine.EventSystems;
             {
                 if (DataManger.IsAvailable())
                 {
-                    int tpToGive = initialTPPerWave + (currentWaveIndex * TP_INCREMENT_PER_WAVE);
+                    int tpToGive = initialTpPerWave + (currentWaveIndex * TpIncrementPerWave);
                     DataManger.Instance.AddTP(tpToGive);
                     Debug.Log($"[GameManager] 웨이브 {CurrentWave} 준비: TP {tpToGive} 지급");
                 }
-                await StartWaveAsync(cancellationToken);
             }
-            else
-            {
-                ChangeGameState(GameState.Preparing);
-                preparationTimer = preparationTime;
-                await UniTask.Yield(cancellationToken);
-                Debug.Log($"[GameManager] 웨이브 {CurrentWave} 준비 시작 ({preparationTime}초)");
-            }
+
+            ChangeGameState(GameState.Preparing);
+            preparationTimer = preparationTime;
+              await UniTask.Yield(cancellationToken);
+            Debug.Log($"[GameManager] 웨이브 {CurrentWave} 준비 시작 ({preparationTime}초)");
         }
 
         private async UniTask StartWaveAsync(CancellationToken cancellationToken)
@@ -290,6 +292,8 @@ using UnityEngine.EventSystems;
             {
                 uiManager.ShowWaveTextAsync($"Wave {CurrentWave} 시작!").Forget();
                 uiManager.UpdateWaveDisplay(CurrentWave, TotalWaves);
+                SoundManager.Instance.PlaySound(AudioMixerType.BGM, "InGamePlay2", true);
+
             }
 
             WaveData currentWaveData = GetCurrentWaveData();
@@ -308,7 +312,7 @@ using UnityEngine.EventSystems;
 
         private async UniTask CompleteWaveAsync(CancellationToken cancellationToken)
         {
-            if (currentState == GameState.WaveComplete) return;
+            if (CurrentState == GameState.WaveComplete) return;
 
             ChangeGameState(GameState.WaveComplete);
             await UniTask.Yield(cancellationToken);
@@ -326,6 +330,7 @@ using UnityEngine.EventSystems;
 
             OnWaveCompleted?.Invoke(CurrentWave, coinReward);
             Debug.Log($"[GameManager] 웨이브 {CurrentWave} 완료! 코인 {coinReward} 획득");
+            SoundManager.Instance.PlaySound(AudioMixerType.BGM, "InGameReady1", true);
 
             // 현재 완료된 웨이브의 isClear를 true로 설정
             WaveData completedWave = GetCurrentWaveData();
@@ -345,7 +350,7 @@ using UnityEngine.EventSystems;
             {
                 if (uiManager != null)
                 {
-                    await uiManager.ShowWaveCountdownAsync(uiManager.CountdownDuration, cancellationToken);
+                    await uiManager.ShowWaveCountdownAsync(CurrentWave, preparationTime, cancellationToken);
                 }
                 await StartPreparationPhaseAsync(cancellationToken);
             }
@@ -378,7 +383,7 @@ using UnityEngine.EventSystems;
 
         private void OnEnemyKilledHandler(GameObject enemy)
         {
-            if (currentState != GameState.Fighting) return;
+            if (CurrentState != GameState.Fighting) return;
 
             enemiesKilled++;
             OnEnemyKilled?.Invoke(enemiesKilled, totalEnemiesInWave);
@@ -477,7 +482,7 @@ using UnityEngine.EventSystems;
 
         public void PauseGame()
         {
-            if (currentState != GameState.Paused && isGameActive)
+            if (CurrentState != GameState.Paused && isGameActive)
             {
                 ChangeGameState(GameState.Paused);
                 Time.timeScale = 0f;
@@ -486,7 +491,7 @@ using UnityEngine.EventSystems;
 
         public void ResumeGame()
         {
-            if (currentState == GameState.Paused)
+            if (CurrentState == GameState.Paused)
             {
                 Time.timeScale = 1f;
                 ChangeGameState(GameState.Preparing);
@@ -585,9 +590,9 @@ using UnityEngine.EventSystems;
 
         private void ChangeGameState(GameState newState)
         {
-            if (currentState == newState) return;
-            GameState previousState = currentState;
-            currentState = newState;
+            if (CurrentState == newState) return;
+            GameState previousState = CurrentState;
+            CurrentState = newState;
             OnGameStateChanged?.Invoke(newState);
             Debug.Log($"[GameManager] 게임 상태 변경: {previousState} → {newState}");
         }
@@ -627,3 +632,4 @@ using UnityEngine.EventSystems;
 
         #endregion
     }
+}

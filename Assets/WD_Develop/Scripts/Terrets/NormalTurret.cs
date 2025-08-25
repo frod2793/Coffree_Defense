@@ -99,7 +99,7 @@ public class NormalTurret : TurretBase
             ChangeState(TerretState.Active);
             if (fireCountdown <= 0f)
             {
-                ShootAsync(normalTurretCancellationTokenSource.Token).Forget();
+                Shoot();
                 fireCountdown = 1f / fireRate;
             }
         }
@@ -113,19 +113,17 @@ public class NormalTurret : TurretBase
 
     #region 발사 시스템
 
-    private async UniTask ShootAsync(CancellationToken cancellationToken)
+    private void Shoot()
     {
         if (target == null || currentState != TerretState.Active) return;
 
         try
         {
-            await UniTask.Yield(cancellationToken);
-            if (target == null) return; // 발사 직전 타겟 재확인
-
             GameObject bulletGo = bulletPool.Get();
             if (bulletGo == null) return;
 
             EffectManager.Instance.PlayEffect(EffectType.TurretShoot, firePoint.position);
+            SoundManager.Instance.PlaySound(AudioMixerType.SFX, "TowerAttack");
 
             ConfigureBullet(bulletGo, target);
         }

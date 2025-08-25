@@ -39,9 +39,14 @@ namespace EasyTransition
         /// <param name="startDelay">The delay before the transition starts.</param>
         public void Transition(TransitionSettings transition, float startDelay)
         {
-            if (transition == null || runningTransition)
+            if (transition == null)
             {
-                Debug.LogError("You have to assing a transition.");
+                Debug.LogError("TransitionSettings is null. You have to assign a transition.");
+                return;
+            }
+            if (runningTransition)
+            {
+                Debug.LogWarning("Another transition is already running.");
                 return;
             }
 
@@ -57,9 +62,14 @@ namespace EasyTransition
         /// <param name="startDelay">The delay before the transition starts.</param>
         public void Transition(string sceneName, TransitionSettings transition, float startDelay)
         {
-            if (transition == null || runningTransition)
+            if (transition == null)
             {
-                Debug.LogError("You have to assing a transition.");
+                Debug.LogError("TransitionSettings is null. You have to assign a transition.");
+                return;
+            }
+            if (runningTransition)
+            {
+                Debug.LogWarning("Another transition is already running.");
                 return;
             }
 
@@ -75,9 +85,14 @@ namespace EasyTransition
         /// <param name="startDelay">The delay before the transition starts.</param>
         public void Transition(int sceneIndex, TransitionSettings transition, float startDelay)
         {
-            if (transition == null || runningTransition)
+            if (transition == null)
             {
-                Debug.LogError("You have to assing a transition.");
+                Debug.LogError("TransitionSettings is null. You have to assign a transition.");
+                return;
+            }
+            if (runningTransition)
+            {
+                Debug.LogWarning("Another transition is already running.");
                 return;
             }
 
@@ -117,6 +132,8 @@ namespace EasyTransition
             yield return new WaitForSecondsRealtime(transitionSettings.destroyTime);
 
             onTransitionEnd?.Invoke();
+
+            runningTransition = false;
         }
 
         IEnumerator Timer(int sceneIndex, float startDelay, TransitionSettings transitionSettings)
@@ -141,6 +158,8 @@ namespace EasyTransition
             yield return new WaitForSecondsRealtime(transitionSettings.destroyTime);
 
             onTransitionEnd?.Invoke();
+
+            runningTransition = false;
         }
 
         IEnumerator Timer(float delay, TransitionSettings transitionSettings)
@@ -174,7 +193,7 @@ namespace EasyTransition
             while (this.gameObject.activeInHierarchy)
             {
                 //Check for multiple instances of the Transition Manager component
-                var managerCount = GameObject.FindObjectsByType<TransitionManager>(FindObjectsInactive.Include, FindObjectsSortMode.None).Length;
+                var managerCount = GameObject.FindObjectsOfType<TransitionManager>(true).Length;
                 if (managerCount > 1)
                     Debug.LogError($"There are {managerCount.ToString()} Transition Managers in your scene. Please ensure there is only one Transition Manager in your scene or overlapping transitions may occur.");
             

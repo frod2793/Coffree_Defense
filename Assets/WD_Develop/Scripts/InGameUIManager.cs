@@ -6,6 +6,7 @@ using Cysharp.Threading.Tasks;
 using System.Threading;
 using TMPro;
 using WD_Develop.Scripts;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// 인게임 UI 관리자 - UniTask 기반 비동기 처리로 최적화
@@ -13,12 +14,11 @@ using WD_Develop.Scripts;
 /// </summary>
 public class InGameUIManager : MonoBehaviour
 {
-    #region 필드 및 속성
 
     // 포탑 조합에 대한 결과오브젝트는 scriptable object로 관리합니다.
     // 조합 식 클래스를 따로 생성하여 조합에 따라 포탑의 프리펙 을 변경 
     // 포탑의 기본 구동 방식은 TurretBase 클래스를 상속받아 구현합니다.
-    // UI 의 재료 칸에서 포탑으로 드래그 앤 드랍시 포탑의 조합 식이 활성화 됩니다 
+    // UI 의 재료 칸에서 포탑으로 마우스 포인트 이동시에 마우스 포인터 위치에 미리보기 아이템 프리펙을 표시합니다.
     // 재료칸에서 가져간 재료를 포탑이랑 겹쳐 놓을시 포탑이 아웃라인으로 표시 됩니다 
     // 재료를 포탑에 드랍시 조합식이 활성화 됩니다 .
     // 조합 식이 활성화 되면 포탑의 작동이 비활성화 되고 포탑의 머리위에 말풍선의 형태로 조합식이 작동 합니다.
@@ -52,10 +52,12 @@ public class InGameUIManager : MonoBehaviour
     [SerializeField] private Button restartBtn;
     [SerializeField] private Button gotoLobbyBtn;
     [SerializeField] private TMP_Text getCoinText;
+    [SerializeField] private string sceneNameLobby;
 
     [Header("드래그 오브젝트")] [SerializeField] private List<Image> images;
+    [SerializeField] private List<Image> lockImage; //버튼 락 이미지
     [SerializeField] private List<GameObject> PrefabList;
-
+    
     [Header("게임진행 정보")] [SerializeField] private TMP_Text waveText; // 현재 웨이브 표시용(효과용) 텍스트
     [SerializeField] private TMP_Text nowWaveText; // 현재 진행 웨이브 상시 표시용 
     [SerializeField] private TMP_Text enemyText; // 현재 남은 적 + 스폰예정적 / 웨이브 총 적
@@ -67,7 +69,7 @@ public class InGameUIManager : MonoBehaviour
     [Header("성능 설정")] [SerializeField] private float currencyUpdateInterval = 0.5f;
     [SerializeField] private int eventTriggerBatchSize = 5; // 이벤트 트리거 설정 시 프레임 분산 크기
 
-    [Header("게임 상태")] [SerializeField] private TextMeshProUGUI GameCountDownText; // 게임 카운트다운 텍스트
+    [Header("게임 상태")] [SerializeField] private TMP_Text GameCountDownText; // 게임 카운트다운 텍스트
     [SerializeField] private float countdownDuration = 10f; // 카운트다운 시간 (초)
     [SerializeField] private bool enableCountdown = true; // 카운트다운 활성화 여부
 
@@ -103,8 +105,6 @@ public class InGameUIManager : MonoBehaviour
     private DataManger.CurrencyInfo lastCurrencyInfo;
     private bool hasDataMangerEvents = false;
 
-    #endregion
-
     #region 유니티 생명주기
 
     async void Start()
@@ -130,6 +130,7 @@ public class InGameUIManager : MonoBehaviour
             await SetupEventSystemAsync(cancellationToken);
             await ValidateSystemsAsync(cancellationToken);
             await InitializeCurrencyUIAsync(cancellationToken);
+            InitializeLockImages();
             if (enableCountdown && GameCountDownText != null)
                 await StartGameCountdownAsync(cancellationToken);
             StartPeriodicUpdateAsync(cancellationToken).Forget();
@@ -164,6 +165,31 @@ public class InGameUIManager : MonoBehaviour
     {
         CheckLayerSetup();
         await UniTask.CompletedTask;
+    }
+
+    /// <summary>
+    /// lockImage의 초기 상태를 설정하고 현재 웨이브에 맞게 업데이트합니다.
+    /// </summary>
+    private void InitializeLockImages()
+    {
+        if (lockImage == null || lockImage.Count == 0)
+        {
+            Debug.LogWarning("[InGameUIManager] lockImage 리스트가 비어있습니다.");
+            return;
+        }
+
+        // 모든 lockImage를 우선 잠금 상태(활성화)로 설정합니다.
+        for (int i = 0; i < lockImage.Count; i++)
+        {
+            if (lockImage[i] != null)
+            {
+                lockImage[i].gameObject.SetActive(true);
+            }
+        }
+
+        // 현재 웨이브에 따라 lockImage 상태를 최종적으로 결정합니다.
+        // gameManager가 null일 수 있는 초기화 순서를 고려하여, currentWave를 1로 가정하고 먼저 실행합니다.
+        CheckAndUnlockImages(gameManager != null ? gameManager.CurrentWave : 1);
     }
 
     #endregion
@@ -967,8 +993,11 @@ public class InGameUIManager : MonoBehaviour
     /// <summary>
     /// 웨이브 시작 전 카운트다운을 표시합니다.
     /// </summary>
-    public async UniTask ShowWaveCountdownAsync(float duration, CancellationToken cancellationToken = default)
+    public async UniTask ShowWaveCountdownAsync(int currentWave, float duration, CancellationToken cancellationToken = default)
     {
+        // 웨이브 준비 시작 시 lockImage 해제 검사
+        CheckAndUnlockImages(currentWave);
+
         if (GameCountDownText == null) return;
         float remainingTime = duration;
         GameCountDownText.gameObject.SetActive(true);
@@ -1177,6 +1206,57 @@ public class InGameUIManager : MonoBehaviour
         {
             Debug.LogWarning("[InGameUIManager] nowWaveText가 할당되지 않았습니다.");
         }
+
+        // 웨이브 시작 시 lockImage 해제 검사
+        CheckAndUnlockImages(currentWave);
+    }
+
+    /// <summary>
+    /// 현재 웨이브에 따라 lockImage를 확인하고 잠금 해제합니다.
+    /// </summary>
+    private void CheckAndUnlockImages(int currentWave)
+    {
+        if (lockImage == null || lockImage.Count == 0) return;
+
+        // 첫 번째 lockImage는 항상 해제
+        if (lockImage.Count > 0 && lockImage[0] != null)
+        {
+            lockImage[0].gameObject.SetActive(false);
+        }
+
+        // 3웨이브마다 하나씩 추가로 해제
+        int unlocksCount = currentWave / 3;
+        for (int i = 1; i <= unlocksCount; i++)
+        {
+            if (i < lockImage.Count && lockImage[i] != null)
+            {
+                lockImage[i].gameObject.SetActive(false);
+            }
+        }
+
+        // lockImage 상태 변경 후, image의 raycastTarget 상태를 동기화합니다.
+        UpdateImageRaycastTargets();
+    }
+
+    /// <summary>
+    /// lockImage의 활성화 상태에 따라 images의 raycastTarget을 업데이트합니다.
+    /// </summary>
+    private void UpdateImageRaycastTargets()
+    {
+        if (images == null || lockImage == null || images.Count != lockImage.Count)
+        {
+            Debug.LogWarning("[InGameUIManager] images와 lockImage 리스트가 없거나 크기가 다릅니다.");
+            return;
+        }
+
+        for (int i = 0; i < images.Count; i++)
+        {
+            if (images[i] != null && lockImage[i] != null)
+            {
+                // lockImage가 비활성화(잠금 해제) 상태일 때, 해당 image의 raycastTarget을 활성화합니다.
+                images[i].raycastTarget = !lockImage[i].gameObject.activeSelf;
+            }
+        }
     }
 
     /// <summary>
@@ -1271,21 +1351,33 @@ public class InGameUIManager : MonoBehaviour
         {
             gameOverPanel.SetActive(true);
         }
+
         if (getCoinText != null)
         {
             getCoinText.text = $"획득 코인: {finalCoin:N0}";
         }
 
-        // 버튼 리스너 추가 (임시)
+        // 버튼 리스너 추가
         if (restartBtn != null)
         {
             restartBtn.onClick.RemoveAllListeners();
-            restartBtn.onClick.AddListener(() => Debug.Log("재시작 버튼 클릭!")); // TODO: 재시작 로직 구현
+            restartBtn.onClick.AddListener(() =>
+            {
+                // 현재 씬을 다시 로드하여 게임을 재시작합니다.
+                var currentScene = SceneManager.GetActiveScene().name;
+                SceneLoader.Instance.LoadScene(currentScene);
+                Debug.Log($"재시작 버튼 클릭! 현재 씬({currentScene})을 다시 로드합니다.");
+            });
         }
+
         if (gotoLobbyBtn != null)
         {
             gotoLobbyBtn.onClick.RemoveAllListeners();
-            gotoLobbyBtn.onClick.AddListener(() => Debug.Log("로비로 이동 버튼 클릭!")); // TODO: 로비 이동 로직 구현
+            gotoLobbyBtn.onClick.AddListener(() =>
+            {
+                SceneLoader.Instance.LoadScene(sceneNameLobby);
+                Debug.Log("로비로 이동 버튼 클릭!");
+            });
         }
     }
     #endregion
