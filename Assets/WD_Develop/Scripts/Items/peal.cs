@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class peal : MonoBehaviour
+public class peal : caffeMaterial
 {
    
 }

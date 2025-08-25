@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class Chocolet : MonoBehaviour
+public class Chocolet : caffeMaterial
 {
   
 }

@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4395229050419527614}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Col
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -44,7 +44,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3725757004888567151}
   - component: {fileID: 6822696742841416642}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: 01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -85,8 +85,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 14.722888, y: 4.895482, z: 0.6132853}
-  m_Center: {x: -6.861444, y: 1.1217153, z: 0.19335735}
+  m_Size: {x: 14.722888, y: 1.8381268, z: 0.6132853}
+  m_Center: {x: -6.861444, y: -0.40696162, z: 0.19335735}
 --- !u!1 &729159240660869927
 GameObject:
   m_ObjectHideFlags: 0
@@ -97,7 +97,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4269692385704435841}
   - component: {fileID: 2814258232599305966}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: 02
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -149,7 +149,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7878808670674041434}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: 01.BasicMap
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -171,8 +171,7 @@ Transform:
   m_Children:
   - {fileID: 2809384631548874452}
   - {fileID: 3169951435814921314}
-  - {fileID: 5541167866241217797}
-  - {fileID: 860191122218965535}
+  - {fileID: 9034079078629366301}
   - {fileID: 8072616385866998974}
   - {fileID: 4395229050419527614}
   m_Father: {fileID: 0}
@@ -187,7 +186,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5295034465209756089}
   - component: {fileID: 1401853897984341981}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: 03
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -230,13 +229,82 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 9.440788, y: 4.895482, z: 0.6132853}
   m_Center: {x: -5.7584906, y: 1.1217153, z: 0.19335735}
+--- !u!1 &8546010099563666229
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 9034079078629366301}
+  - component: {fileID: 3775673997959291910}
+  - component: {fileID: 5519595788825462303}
+  m_Layer: 0
+  m_Name: caffeWall
+  m_TagString: CafeWall
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &9034079078629366301
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8546010099563666229}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.7071068, y: -0, z: -0, w: 0.7071068}
+  m_LocalPosition: {x: -1.8600005, y: 0, z: -0.004999995}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 5541167866241217797}
+  - {fileID: 860191122218965535}
+  m_Father: {fileID: 7878808670674041434}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &3775673997959291910
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8546010099563666229}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.14974722, y: 8.550984, z: 0.94544405}
+  m_Center: {x: -0.061722618, y: 4.278523, z: 0.4053515}
+--- !u!114 &5519595788825462303
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8546010099563666229}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab1ded83ae68341a8bbd6946f03faa56, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHealth: 1000
 --- !u!1001 &899235833221168628
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 7878808670674041434}
+    m_TransformParent: {fileID: 9034079078629366301}
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 250cdc9ec1e95ca47850c6e332645bbe, type: 3}
       propertyPath: m_LocalScale.y
@@ -244,7 +312,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 250cdc9ec1e95ca47850c6e332645bbe, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -1.86
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 250cdc9ec1e95ca47850c6e332645bbe, type: 3}
       propertyPath: m_LocalPosition.y
@@ -252,15 +320,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 250cdc9ec1e95ca47850c6e332645bbe, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.005
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 250cdc9ec1e95ca47850c6e332645bbe, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.7071068
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 250cdc9ec1e95ca47850c6e332645bbe, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.7071068
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 250cdc9ec1e95ca47850c6e332645bbe, type: 3}
       propertyPath: m_LocalRotation.y
@@ -285,6 +353,14 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: 250cdc9ec1e95ca47850c6e332645bbe, type: 3}
       propertyPath: m_Name
       value: Door (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 250cdc9ec1e95ca47850c6e332645bbe, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 250cdc9ec1e95ca47850c6e332645bbe, type: 3}
+      propertyPath: m_TagString
+      value: CafeWall
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -316,7 +392,7 @@ BoxCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 3
   m_Size: {x: 2.5922546, y: 8.624769, z: 3.3333259}
   m_Center: {x: 1.0183451, y: -4.3123846, z: 1.0844725}
@@ -376,6 +452,10 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: ad7e0372b655e864aa0eabb5c68408f7, type: 3}
       propertyPath: m_Name
       value: Stair
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: ad7e0372b655e864aa0eabb5c68408f7, type: 3}
+      propertyPath: m_Layer
+      value: 3
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -439,6 +519,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Ground
       objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: d91e21f30d52532489e5f3284c004692, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -484,27 +568,27 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 7878808670674041434}
+    m_TransformParent: {fileID: 9034079078629366301}
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 250cdc9ec1e95ca47850c6e332645bbe, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -1.86
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 250cdc9ec1e95ca47850c6e332645bbe, type: 3}
-      propertyPath: m_LocalPosition.y
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 250cdc9ec1e95ca47850c6e332645bbe, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 8.587003
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 250cdc9ec1e95ca47850c6e332645bbe, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -8.592
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 250cdc9ec1e95ca47850c6e332645bbe, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.7071068
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 250cdc9ec1e95ca47850c6e332645bbe, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.7071068
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 250cdc9ec1e95ca47850c6e332645bbe, type: 3}
       propertyPath: m_LocalRotation.y
@@ -529,6 +613,14 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: 250cdc9ec1e95ca47850c6e332645bbe, type: 3}
       propertyPath: m_Name
       value: Door
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 250cdc9ec1e95ca47850c6e332645bbe, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 250cdc9ec1e95ca47850c6e332645bbe, type: 3}
+      propertyPath: m_TagString
+      value: CafeWall
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -591,6 +683,10 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: 277911306849c3041bf14bb5030ffa59, type: 3}
       propertyPath: m_Name
       value: Block
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 277911306849c3041bf14bb5030ffa59, type: 3}
+      propertyPath: m_Layer
+      value: 3
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
