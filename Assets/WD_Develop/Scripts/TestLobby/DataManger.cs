@@ -106,7 +106,8 @@ public class DataManger : MonoBehaviour
             coin = userCurrencyData.Coin,
             tp = userCurrencyData.TP,
             waterPoint = userCurrencyData.WaterPoint,
-            clearStage = userCurrencyData.ClearStage
+            clearStage = userCurrencyData.ClearStage,
+            selectStage = userCurrencyData.SelectStage
         };
     }
 
@@ -120,10 +121,11 @@ public class DataManger : MonoBehaviour
         public int tp;
         public int waterPoint;
         public int clearStage;
+        public int selectStage;
 
         public override string ToString()
         {
-            return $"코인: {coin}, TP: {tp}, 워터포인트: {waterPoint}, 클리어 스테이지: {clearStage}";
+            return $"코인: {coin}, TP: {tp}, 워터포인트: {waterPoint}, 클리어 스테이지: {clearStage}, 선택 스테이지: {selectStage}";
         }
     }
 
@@ -175,6 +177,7 @@ public class DataManger : MonoBehaviour
         int savedTP = userCurrencyData.TP;
         int savedWaterPoint = userCurrencyData.WaterPoint;
         int savedClearStage = userCurrencyData.ClearStage;
+        int savedSelectStage = userCurrencyData.SelectStage;
 
         // 메인 스레드에서 이벤트 발생
         OnCoinChanged?.Invoke(savedCoin);
@@ -224,6 +227,8 @@ public class DataManger : MonoBehaviour
     public int GetTp() => userCurrencyData?.TP ?? 0;
     public int GetWaterPoint() => userCurrencyData?.WaterPoint ?? 0;
     public int GetClearStage() => userCurrencyData?.ClearStage ?? 0;
+
+    public int GetSelectStage() => userCurrencyData?.SelectStage ?? 0;
 
     // 코인 관련 (비동기 처리)
     public async UniTask<bool> SpendCoinAsync(int amount, CancellationToken cancellationToken = default)
@@ -365,20 +370,30 @@ public class DataManger : MonoBehaviour
         }
     }
 
+    // 선택 스테이지 관련
+    public void SetSelectStage(int stageIndex)
+    {
+        if (userCurrencyData != null)
+        {
+            userCurrencyData.SetSelectStage(stageIndex);
+            Debug.Log($"[DataManger] Select Stage updated to: {stageIndex}");
+        }
+    }
+
     // 데이터 리셋 (비동기 처리)
     public async UniTask ResetAllDataAsync(CancellationToken cancellationToken = default)
     {
         if (userCurrencyData != null)
         {
             userCurrencyData.ResetData();
-            
+
             // UI 업데이트를 분산 처리
             await UniTask.Yield(cancellationToken);
-            
+
             OnCoinChanged?.Invoke(userCurrencyData.Coin);
             OnTPChanged?.Invoke(userCurrencyData.TP);
             OnWaterPointChanged?.Invoke(userCurrencyData.WaterPoint);
-            
+
             Debug.Log("모든 데이터가 리셋되었습니다.");
         }
     }

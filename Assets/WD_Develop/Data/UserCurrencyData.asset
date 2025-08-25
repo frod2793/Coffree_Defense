@@ -15,4 +15,5 @@ MonoBehaviour:
   coin: 50780
   tp: 2933
   waterPoint: 0
-  clearStage: 0
+  clearStage: 2
+  selectStage: 1

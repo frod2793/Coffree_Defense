@@ -1,17 +1,24 @@
 using UnityEngine;
 using UnityEngine.UI;
 using DG.Tweening;
-using UnityEngine.SceneManagement;
+using System.Collections.Generic;
 
 namespace WD_Develop.Scripts.Managers
 {
     public class LobbyUiManager : MonoBehaviour
     {
         [SerializeField]
-        Button playButton;// 플레이버튼 
+        private List<Button> stageButtons;// 스테이지버튼 
+        [SerializeField] private List<int> buttonValues; // 버튼에 스테이지 값 할당
 
         [SerializeField]
         Button settingButton;// 셋팅버튼 
+
+        [SerializeField]
+        Button nextButton;// 셋팅버튼 
+
+        [SerializeField]
+        Button prevButton;// 셋팅버튼 
 
         [Header("아이템 구매 창")]
         [SerializeField]
@@ -19,6 +26,9 @@ namespace WD_Develop.Scripts.Managers
 
         [SerializeField]
         private GameObject settingPopUpPanel; // 셋팅 창
+        [SerializeField]
+        private GameObject stageScrollView; // 스테이지 버튼 스크롤 뷰
+
         [SerializeField]
         private Button gameStartButton; // 아이템 구매 창에서 게임 시작 버튼
         [SerializeField]
@@ -50,13 +60,15 @@ namespace WD_Develop.Scripts.Managers
         private int userCoins;
         private int turretPoints;
         private int waterPoints;
+        private int clearStage;
 
         private void Start()
         {
-            InitializeButtons();
-            InitializePopup();
 
             UserPointUpdate();
+
+            InitializeButtons();
+            InitializePopup();
 
             SoundManager.Instance.PlaySound(AudioMixerType.BGM, "LobbyBgm", true); // 로비 BGM 재생
         }
@@ -66,6 +78,7 @@ namespace WD_Develop.Scripts.Managers
             userCoins = DataManger.Instance.GetCoin();
             turretPoints = DataManger.Instance.GetTp();
             waterPoints = DataManger.Instance.GetWaterPoint();
+            clearStage = DataManger.Instance.GetClearStage();
 
             // Coin 텍스트 업데이트
             if (coinText != null)
@@ -86,10 +99,36 @@ namespace WD_Develop.Scripts.Managers
 
         private void InitializeButtons()
         {
-            // 플레이 버튼 이벤트 연결
-            playButton.onClick.AddListener(OnPlayButtonClicked);
-            // 셋팅 버튼 이벤트 연결
-            settingButton.onClick.AddListener(OnSettingButtonClicked);
+            // 스테이지 버튼 이벤트 연결
+            for (int i = 0; i < stageButtons.Count; i++)
+            {
+                if (i <= clearStage)
+                {
+                    // 버튼 활성화 + 클릭 이벤트 등록
+                    stageButtons[i].gameObject.SetActive(true);
+                    int value = buttonValues[i];
+                    stageButtons[i].onClick.AddListener(() => OnStageButtonClicked(value));
+                }
+                else
+                {
+                    // 버튼 비활성화
+                    stageButtons[i].gameObject.SetActive(false);
+                }
+            }
+
+            if (clearStage >= 8)
+            {
+                nextButton.gameObject.SetActive(true);
+                prevButton.gameObject.SetActive(true);
+            }
+            else
+            {
+                nextButton.gameObject.SetActive(false);
+                prevButton.gameObject.SetActive(false);
+            }
+
+                // 셋팅 버튼 이벤트 연결
+                settingButton.onClick.AddListener(OnSettingButtonClicked);
 
             // 팝업 내 버튼들 이벤트 연결
             gameStartButton.onClick.AddListener(OnGameStartButtonClicked);
@@ -112,10 +151,11 @@ namespace WD_Develop.Scripts.Managers
 
         #region 버튼 이벤트 핸들러
 
-        private void OnPlayButtonClicked()
+        private void OnStageButtonClicked(int value)
         {
             UIButtonSoundPlay();
             ShowBuyPopup();
+            DataManger.Instance.SetSelectStage(value);
         }
 
         private void OnSettingButtonClicked()
@@ -245,6 +285,19 @@ namespace WD_Develop.Scripts.Managers
                 buyPopUpPanel.transform.DOScale(Vector3.one, animationDuration)
                     .SetEase(Ease.OutBack);
             }
+
+            if (stageScrollView != null)
+            {
+                stageScrollView.SetActive(false);
+            }
+            if(nextButton != null)
+            {
+                nextButton.gameObject.SetActive(false);
+            }
+            if (prevButton != null)
+            {
+                prevButton.gameObject.SetActive(false);
+            }
         }
 
         private void HideBuyPopup()
@@ -254,8 +307,33 @@ namespace WD_Develop.Scripts.Managers
                 // 팝업 사라지는 애니메이션
                 buyPopUpPanel.transform.DOScale(Vector3.zero, animationDuration)
                     .SetEase(Ease.InBack)
-                    .OnComplete(() => buyPopUpPanel.SetActive(false));
+                    .OnComplete(() =>
+                    {
+                        buyPopUpPanel.SetActive(false);
+                        if (stageScrollView != null)
+                        {
+                            stageScrollView.SetActive(true);
+
+                            stageScrollView.transform.localScale = Vector3.zero;
+                            stageScrollView.transform.DOScale(Vector3.one, animationDuration).SetEase(Ease.OutBack);
+                        }
+
+                        if (nextButton != null && clearStage >= 8)
+                        {
+                            nextButton.gameObject.SetActive(true);
+                            nextButton.transform.localScale = Vector3.zero;
+                            nextButton.transform.DOScale(Vector3.one, animationDuration).SetEase(Ease.OutBack);
+                        }
+
+                        if (prevButton != null && clearStage >= 8)
+                        {
+                            prevButton.gameObject.SetActive(true);
+                            prevButton.transform.localScale = Vector3.zero;
+                            prevButton.transform.DOScale(Vector3.one, animationDuration).SetEase(Ease.OutBack);
+                        }
+                    });
             }
+            
         }
 
         private void ShowSettingPopup()
@@ -320,7 +398,7 @@ namespace WD_Develop.Scripts.Managers
         {
             // 메모리 누수 방지를 위한 DOTween 킬
             if (buyPopUpPanel != null) buyPopUpPanel.transform.DOKill();
-            if (playButton != null) playButton.transform.DOKill();
+            // if (playButton != null) playButton.transform.DOKill();
             if (buyTpButton != null) buyTpButton.transform.DOKill();
             if (buyWwButton != null) buyWwButton.transform.DOKill();
         }
