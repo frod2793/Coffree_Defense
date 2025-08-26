@@ -9,7 +9,7 @@ public class UserCurrencyData : ScriptableObject
     [SerializeField] private int waterPoint = 100;
     [SerializeField] private int clearStage;
     // 선택한 스테이지
-    [SerializeField] private int selectStage;
+     public int selectStage;
 
     public int Coin
     {
