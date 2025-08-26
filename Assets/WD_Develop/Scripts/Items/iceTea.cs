@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class iceTea : MonoBehaviour
+public class iceTea : caffeMaterial
 {
   
 }

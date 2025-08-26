@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class Malcha : MonoBehaviour
+public class Malcha : caffeMaterial
 {
   
 }

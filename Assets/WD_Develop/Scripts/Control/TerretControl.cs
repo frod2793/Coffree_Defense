@@ -244,7 +244,7 @@ public class TerretControl : MonoBehaviour
             }
 
             // 터렛 위 충돌 감지 및 아웃라인 처리
-            if (selectedItemPrefab != null && selectedItemPrefab.GetComponent<CoffeBean>() != null)
+            if (selectedItemPrefab != null && selectedItemPrefab.GetComponent<caffeMaterial>() != null)
             {
                 // Turret 레이어 체크
                 int turretLayer = LayerMask.NameToLayer("Turret");
@@ -286,10 +286,10 @@ public class TerretControl : MonoBehaviour
             Debug.Log($"터렛 감지: {turretBase.name} ({turretBase.GetType().Name})");
             
             // 조합 가능한지 확인
-            CoffeBean itemComponent = selectedItemPrefab.GetComponent<CoffeBean>();
+            caffeMaterial itemComponent = selectedItemPrefab.GetComponent<caffeMaterial>();
             if (itemComponent == null)
             {
-                Debug.LogError("선택된 프리팹에 CoffeBean 컴포넌트가 없습니다!");
+                Debug.LogError("선택된 프리팹에 caffeMaterial 컴포넌트가 없습니다!");
                 return;
             }
             
@@ -412,7 +412,7 @@ public class TerretControl : MonoBehaviour
             {
                 Debug.Log($"드롭한 위치: 터렛({highlightedTurret.name})");
                 
-                if (selectedItemPrefab.TryGetComponent<CoffeBean>(out var item))
+                if (selectedItemPrefab.TryGetComponent<caffeMaterial>(out var item))
                 {
                     // 조합 처리를 비동기로 실행
                     await ProcessCombinationAsync(item, cancellationToken);
@@ -446,7 +446,7 @@ public class TerretControl : MonoBehaviour
     /// <summary>
     /// 조합 처리를 비동기로 실행합니다.
     /// </summary>
-    private async UniTask ProcessCombinationAsync(CoffeBean item, CancellationToken cancellationToken)
+    private async UniTask ProcessCombinationAsync(caffeMaterial item, CancellationToken cancellationToken)
     {
         // 조합 하이라이트 이펙트 제거
         HideCombinationEffect(highlightedTurret);

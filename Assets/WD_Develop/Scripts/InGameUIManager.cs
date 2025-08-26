@@ -55,7 +55,6 @@ public class InGameUIManager : MonoBehaviour
     [SerializeField] private string sceneNameLobby;
 
     [Header("드래그 오브젝트")] [SerializeField] private List<Image> images;
-    [SerializeField] private List<Image> lockImage; //버튼 락 이미지
     [SerializeField] private List<GameObject> PrefabList;
     
     [Header("게임진행 정보")] [SerializeField] private TMP_Text waveText; // 현재 웨이브 표시용(효과용) 텍스트
@@ -168,28 +167,19 @@ public class InGameUIManager : MonoBehaviour
     }
 
     /// <summary>
-    /// lockImage의 초기 상태를 설정하고 현재 웨이브에 맞게 업데이트합니다.
+    /// 드래그 아이템의 잠금 상태를 초기화합니다.
     /// </summary>
     private void InitializeLockImages()
     {
-        if (lockImage == null || lockImage.Count == 0)
+        if (images == null || images.Count == 0)
         {
-            Debug.LogWarning("[InGameUIManager] lockImage 리스트가 비어있습니다.");
+            Debug.LogWarning("[InGameUIManager] images 리스트가 비어있습니다.");
             return;
         }
 
-        // 모든 lockImage를 우선 잠금 상태(활성화)로 설정합니다.
-        for (int i = 0; i < lockImage.Count; i++)
-        {
-            if (lockImage[i] != null)
-            {
-                lockImage[i].gameObject.SetActive(true);
-            }
-        }
-
-        // 현재 웨이브에 따라 lockImage 상태를 최종적으로 결정합니다.
+        // 현재 웨이브에 따라 드래그 아이템의 잠금 상태를 초기화합니다.
         // gameManager가 null일 수 있는 초기화 순서를 고려하여, currentWave를 1로 가정하고 먼저 실행합니다.
-        CheckAndUnlockImages(gameManager != null ? gameManager.CurrentWave : 1);
+        UpdateDragItemStatesByWave(gameManager != null ? gameManager.CurrentWave : 1);
     }
 
     #endregion
@@ -995,8 +985,8 @@ public class InGameUIManager : MonoBehaviour
     /// </summary>
     public async UniTask ShowWaveCountdownAsync(int currentWave, float duration, CancellationToken cancellationToken = default)
     {
-        // 웨이브 준비 시작 시 lockImage 해제 검사
-        CheckAndUnlockImages(currentWave);
+        // 웨이브 준비 시작 시 잠금 상태 업데이트
+        UpdateDragItemStatesByWave(currentWave);
 
         if (GameCountDownText == null) return;
         float remainingTime = duration;
@@ -1207,55 +1197,52 @@ public class InGameUIManager : MonoBehaviour
             Debug.LogWarning("[InGameUIManager] nowWaveText가 할당되지 않았습니다.");
         }
 
-        // 웨이브 시작 시 lockImage 해제 검사
-        CheckAndUnlockImages(currentWave);
+        // 웨이브 시작 시 잠금 상태 업데이트
+        UpdateDragItemStatesByWave(currentWave);
     }
 
     /// <summary>
-    /// 현재 웨이브에 따라 lockImage를 확인하고 잠금 해제합니다.
+    /// 현재 웨이브에 따라 드래그 아이템의 잠금 상태(자물쇠 이미지, Raycast)를 업데이트합니다.
+    /// 이 메서드는 자식으로 포함된 잠금 이미지를 직접 찾아 제어하여 최적화되었습니다.
     /// </summary>
-    private void CheckAndUnlockImages(int currentWave)
+    private void UpdateDragItemStatesByWave(int currentWave)
     {
-        if (lockImage == null || lockImage.Count == 0) return;
-
-        // 첫 번째 lockImage는 항상 해제
-        if (lockImage.Count > 0 && lockImage[0] != null)
+        if (images == null || images.Count == 0)
         {
-            lockImage[0].gameObject.SetActive(false);
-        }
-
-        // 3웨이브마다 하나씩 추가로 해제
-        int unlocksCount = currentWave / 3;
-        for (int i = 1; i <= unlocksCount; i++)
-        {
-            if (i < lockImage.Count && lockImage[i] != null)
-            {
-                lockImage[i].gameObject.SetActive(false);
-            }
-        }
-
-        // lockImage 상태 변경 후, image의 raycastTarget 상태를 동기화합니다.
-        UpdateImageRaycastTargets();
-    }
-
-    /// <summary>
-    /// lockImage의 활성화 상태에 따라 images의 raycastTarget을 업데이트합니다.
-    /// </summary>
-    private void UpdateImageRaycastTargets()
-    {
-        if (images == null || lockImage == null || images.Count != lockImage.Count)
-        {
-            Debug.LogWarning("[InGameUIManager] images와 lockImage 리스트가 없거나 크기가 다릅니다.");
+            Debug.LogWarning("[InGameUIManager] images 리스트가 비어있습니다.");
             return;
         }
 
         for (int i = 0; i < images.Count; i++)
         {
-            if (images[i] != null && lockImage[i] != null)
+            if (images[i] == null) continue;
+
+            Image lockImageComponent = null;
+            // GetComponentsInChildren는 부모 자신도 포함하므로 자식만 찾기 위한 처리
+            foreach (var img in images[i].GetComponentsInChildren<Image>(true))
             {
-                // lockImage가 비활성화(잠금 해제) 상태일 때, 해당 image의 raycastTarget을 활성화합니다.
-                images[i].raycastTarget = !lockImage[i].gameObject.activeSelf;
+                if (img.transform != images[i].transform)
+                {
+                    lockImageComponent = img;
+                    break;
+                }
             }
+
+            if (lockImageComponent == null)
+            {
+                Debug.LogWarning($"[InGameUIManager] 드래그 아이템 '{images[i].name}'에서 잠금 이미지 자식을 찾을 수 없습니다.");
+                continue;
+            }
+
+            // 3웨이브마다 하나씩 추가로 해제됩니다. (예: wave 1-2 -> 1개, wave 3-5 -> 2개)
+            // i가 (currentWave / 3) 보다 작거나 같으면 잠금 해제 상태가 됩니다.
+            bool isUnlocked = i <= (currentWave / 3);
+
+            // lockImage GameObject의 활성 상태를 설정합니다. (잠금 해제 시 비활성화)
+            lockImageComponent.gameObject.SetActive(!isUnlocked);
+
+            // image의 raycastTarget을 설정합니다. (잠금 해제 시 활성화)
+            images[i].raycastTarget = isUnlocked;
         }
     }
 
