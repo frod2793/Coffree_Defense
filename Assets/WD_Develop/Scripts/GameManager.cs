@@ -177,8 +177,33 @@ namespace WD_Develop.Scripts
                     return; // 웨이브 데이터 없으면 게임 시작 중단
                 }
 
-                int lastClearedWaveIndex = FindLastClearedWaveIndex();
-                currentWaveIndex = (lastClearedWaveIndex == -1) ? 0 : lastClearedWaveIndex + 1;
+                // DataManger에서 선택한 스테이지 정보를 가져와 시작 웨이브를 설정합니다.
+                int startWave = 1; // 기본 시작 웨이브
+                if (DataManger.IsAvailable())
+                {
+                    int selectedStage = DataManger.Instance.GetSelectStage();
+                    // selectStage가 1 이상일 경우 유효한 값으로 간주
+                    if (selectedStage > 0)
+                    {
+                        startWave = selectedStage;
+                    }
+                }
+
+                // 웨이브 인덱스는 0부터 시작하므로 1을 빼줍니다.
+                currentWaveIndex = startWave - 1;
+
+                // 인덱스가 유효한 범위 내에 있는지 확인합니다.
+                if (currentWaveIndex >= TotalWaves || currentWaveIndex < 0)
+                {
+                    Debug.LogWarning($"[GameManager] 선택된 스테이지({startWave})가 유효하지 않습니다. 첫 웨이브부터 시작합니다.");
+                    currentWaveIndex = 0;
+                }
+
+                // 시작 웨이브가 결정된 후, InGameUIManager의 UI를 즉시 업데이트하여 동기화합니다.
+                if (uiManager != null)
+                {
+                    uiManager.UpdateWaveDisplay(CurrentWave, TotalWaves);
+                }
 
                 if (currentWaveIndex >= TotalWaves && TotalWaves > 0)
                 {
@@ -186,7 +211,6 @@ namespace WD_Develop.Scripts
                     await EndGameAsync(true, cancellationToken);
                     return;
                 }
-
 
                 enemiesKilled = 0;
                 totalEnemiesInWave = 0;
@@ -201,8 +225,6 @@ namespace WD_Develop.Scripts
 
                 isGameActive = true;
                 Debug.Log($"[GameManager] 게임 초기화 완료. 시작 웨이브: {CurrentWave}");
-                
-                
             }
             catch (Exception ex)
             {
@@ -326,6 +348,10 @@ namespace WD_Develop.Scripts
             if (DataManger.IsAvailable())
             {
                 DataManger.Instance.AddCoin(coinReward);
+                // 최고 클리어 스테이지를 갱신합니다.
+                DataManger.Instance.UpdateHighestClearedStage(CurrentWave);
+                // UI의 잠금 상태를 실시간으로 갱신합니다.
+                if (uiManager != null) uiManager.UpdateDragItemUnlockState();
             }
 
             OnWaveCompleted?.Invoke(CurrentWave, coinReward);

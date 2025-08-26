@@ -106,8 +106,8 @@ public class DataManger : MonoBehaviour
             coin = userCurrencyData.Coin,
             tp = userCurrencyData.TP,
             waterPoint = userCurrencyData.WaterPoint,
-            clearStage = userCurrencyData.ClearStage,
-            selectStage = userCurrencyData.SelectStage
+            selectStage = userCurrencyData.SelectStage,
+            highestClearedStage = userCurrencyData.HighestClearedStage
         };
     }
 
@@ -120,12 +120,12 @@ public class DataManger : MonoBehaviour
         public int coin;
         public int tp;
         public int waterPoint;
-        public int clearStage;
         public int selectStage;
+        public int highestClearedStage;
 
         public override string ToString()
         {
-            return $"코인: {coin}, TP: {tp}, 워터포인트: {waterPoint}, 클리어 스테이지: {clearStage}, 선택 스테이지: {selectStage}";
+            return $"코인: {coin}, TP: {tp}, 워터포인트: {waterPoint}, 선택 스테이지: {selectStage}, 최고 클리어: {highestClearedStage}";
         }
     }
 
@@ -173,18 +173,14 @@ public class DataManger : MonoBehaviour
         // 무거운 작업을 다음 프레임으로 분산
         await UniTask.Yield(cancellationToken);
 
-        int savedCoin = userCurrencyData.Coin;
-        int savedTP = userCurrencyData.TP;
-        int savedWaterPoint = userCurrencyData.WaterPoint;
-        int savedClearStage = userCurrencyData.ClearStage;
-        int savedSelectStage = userCurrencyData.SelectStage;
+        var loadedInfo = GetAllCurrencyInfo();
 
         // 메인 스레드에서 이벤트 발생
-        OnCoinChanged?.Invoke(savedCoin);
-        OnTPChanged?.Invoke(savedTP);
-        OnWaterPointChanged?.Invoke(savedWaterPoint);
+        OnCoinChanged?.Invoke(loadedInfo.coin);
+        OnTPChanged?.Invoke(loadedInfo.tp);
+        OnWaterPointChanged?.Invoke(loadedInfo.waterPoint);
 
-        Debug.Log($"[DataManger] 데이터 로드 완료 - 코인: {savedCoin}, TP: {savedTP}, 워터포인트: {savedWaterPoint}, 클리어 스테이지: {savedClearStage}");
+        Debug.Log($"[DataManger] 데이터 로드 완료 - {loadedInfo}");
     }
 
     // 동기 버전 유지 (하위 호환성)
@@ -208,7 +204,7 @@ public class DataManger : MonoBehaviour
         // UserCurrencyData가 자동으로 저장하므로 수동 저장만 호출
         userCurrencyData.Save();
 
-        Debug.Log($"[DataManger] 데이터 저장 완료 - 코인: {userCurrencyData.Coin}, TP: {userCurrencyData.TP}, 워터포인트: {userCurrencyData.WaterPoint}, 클리어 스테이지: {userCurrencyData.ClearStage}");
+        Debug.Log($"[DataManger] 데이터 저장 완료 - {GetAllCurrencyInfo()}");
     }
 
     // 동기 버전 유지 (하위 호환성)
@@ -226,9 +222,8 @@ public class DataManger : MonoBehaviour
     public int GetCoin() => userCurrencyData?.Coin ?? 0;
     public int GetTp() => userCurrencyData?.TP ?? 0;
     public int GetWaterPoint() => userCurrencyData?.WaterPoint ?? 0;
-    public int GetClearStage() => userCurrencyData?.ClearStage ?? 0;
-
     public int GetSelectStage() => userCurrencyData?.SelectStage ?? 0;
+    public int GetHighestClearedStage() => userCurrencyData?.HighestClearedStage ?? 0;
 
     // 코인 관련 (비동기 처리)
     public async UniTask<bool> SpendCoinAsync(int amount, CancellationToken cancellationToken = default)
@@ -360,16 +355,6 @@ public class DataManger : MonoBehaviour
         }
     }
 
-    // 클리어 스테이지 관련
-    public void SetClearStage(int stageIndex)
-    {
-        if (userCurrencyData != null)
-        {
-            userCurrencyData.SetClearStage(stageIndex);
-            Debug.Log($"[DataManger] Clear Stage updated to: {stageIndex}");
-        }
-    }
-
     // 선택 스테이지 관련
     public void SetSelectStage(int stageIndex)
     {
@@ -377,6 +362,18 @@ public class DataManger : MonoBehaviour
         {
             userCurrencyData.SetSelectStage(stageIndex);
             Debug.Log($"[DataManger] Select Stage updated to: {stageIndex}");
+        }
+    }
+
+    /// <summary>
+    /// 최고 클리어 스테이지를 갱신합니다.
+    /// </summary>
+    public void UpdateHighestClearedStage(int clearedStage)
+    {
+        if (userCurrencyData != null)
+        {
+            userCurrencyData.UpdateHighestClearedStage(clearedStage);
+            Debug.Log($"[DataManger] Highest Cleared Stage updated to: {userCurrencyData.HighestClearedStage}");
         }
     }
 
