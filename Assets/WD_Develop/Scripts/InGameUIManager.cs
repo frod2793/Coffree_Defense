@@ -129,7 +129,7 @@ public class InGameUIManager : MonoBehaviour
             await SetupEventSystemAsync(cancellationToken);
             await ValidateSystemsAsync(cancellationToken);
             await InitializeCurrencyUIAsync(cancellationToken);
-            InitializeLockImages();
+            UpdateDragItemUnlockState(); // 최종 클리어 스테이지 기준으로 잠금 상태 설정
             if (enableCountdown && GameCountDownText != null)
                 await StartGameCountdownAsync(cancellationToken);
             StartPeriodicUpdateAsync(cancellationToken).Forget();
@@ -164,22 +164,6 @@ public class InGameUIManager : MonoBehaviour
     {
         CheckLayerSetup();
         await UniTask.CompletedTask;
-    }
-
-    /// <summary>
-    /// 드래그 아이템의 잠금 상태를 초기화합니다.
-    /// </summary>
-    private void InitializeLockImages()
-    {
-        if (images == null || images.Count == 0)
-        {
-            Debug.LogWarning("[InGameUIManager] images 리스트가 비어있습니다.");
-            return;
-        }
-
-        // 현재 웨이브에 따라 드래그 아이템의 잠금 상태를 초기화합니다.
-        // gameManager가 null일 수 있는 초기화 순서를 고려하여, currentWave를 1로 가정하고 먼저 실행합니다.
-        UpdateDragItemStatesByWave(gameManager != null ? gameManager.CurrentWave : 1);
     }
 
     #endregion
@@ -271,7 +255,7 @@ public class InGameUIManager : MonoBehaviour
             return;
         }
 
-        var currentTP = DataManger.Instance.GetTP();
+        var currentTP = DataManger.Instance.GetTp();
         if (currentTP <= 0)
         {
             Debug.LogWarning("[InGameUIManager] TP가 부족하여 터렛을 추가할 수 없습니다.");
@@ -985,8 +969,7 @@ public class InGameUIManager : MonoBehaviour
     /// </summary>
     public async UniTask ShowWaveCountdownAsync(int currentWave, float duration, CancellationToken cancellationToken = default)
     {
-        // 웨이브 준비 시작 시 잠금 상태 업데이트
-        UpdateDragItemStatesByWave(currentWave);
+        // 잠금 해제는 최종 클리어 스테이지를 따르므로, 여기서 상태를 변경할 필요가 없습니다.
 
         if (GameCountDownText == null) return;
         float remainingTime = duration;
@@ -1197,20 +1180,24 @@ public class InGameUIManager : MonoBehaviour
             Debug.LogWarning("[InGameUIManager] nowWaveText가 할당되지 않았습니다.");
         }
 
-        // 웨이브 시작 시 잠금 상태 업데이트
-        UpdateDragItemStatesByWave(currentWave);
+        // 잠금 해제는 최종 클리어 스테이지를 따르므로, 여기서 상태를 변경할 필요가 없습니다.
     }
 
     /// <summary>
-    /// 현재 웨이브에 따라 드래그 아이템의 잠금 상태(자물쇠 이미지, Raycast)를 업데이트합니다.
-    /// 이 메서드는 자식으로 포함된 잠금 이미지를 직접 찾아 제어하여 최적화되었습니다.
+    /// 플레이어의 최종 클리어 스테이지에 따라 드래그 아이템의 잠금 상태를 업데이트합니다.
     /// </summary>
-    private void UpdateDragItemStatesByWave(int currentWave)
+    private void UpdateDragItemUnlockState()
     {
         if (images == null || images.Count == 0)
         {
             Debug.LogWarning("[InGameUIManager] images 리스트가 비어있습니다.");
             return;
+        }
+
+        int highestClearedStage = 0;
+        if (DataManger.IsAvailable())
+        {
+            highestClearedStage = DataManger.Instance.GetHighestClearedStage();
         }
 
         for (int i = 0; i < images.Count; i++)
@@ -1234,9 +1221,9 @@ public class InGameUIManager : MonoBehaviour
                 continue;
             }
 
-            // 3웨이브마다 하나씩 추가로 해제됩니다. (예: wave 1-2 -> 1개, wave 3-5 -> 2개)
-            // i가 (currentWave / 3) 보다 작거나 같으면 잠금 해제 상태가 됩니다.
-            bool isUnlocked = i <= (currentWave / 3);
+            // 최고 클리어 스테이지를 기준으로 잠금 해제 여부를 결정합니다.
+            // 예: 3 스테이지를 클리어할 때마다 다음 아이템이 해제됩니다.
+            bool isUnlocked = i <= (highestClearedStage / 3);
 
             // lockImage GameObject의 활성 상태를 설정합니다. (잠금 해제 시 비활성화)
             lockImageComponent.gameObject.SetActive(!isUnlocked);

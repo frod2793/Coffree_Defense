@@ -348,6 +348,8 @@ namespace WD_Develop.Scripts
             if (DataManger.IsAvailable())
             {
                 DataManger.Instance.AddCoin(coinReward);
+                // 최고 클리어 스테이지를 갱신합니다.
+                DataManger.Instance.UpdateHighestClearedStage(CurrentWave);
             }
 
             OnWaveCompleted?.Invoke(CurrentWave, coinReward);

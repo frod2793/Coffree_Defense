@@ -60,7 +60,7 @@ namespace WD_Develop.Scripts.Managers
         private int userCoins;
         private int turretPoints;
         private int waterPoints;
-        private int clearStage;
+        private int highestClearedStage;
 
         private void Start()
         {
@@ -78,7 +78,7 @@ namespace WD_Develop.Scripts.Managers
             userCoins = DataManger.Instance.GetCoin();
             turretPoints = DataManger.Instance.GetTp();
             waterPoints = DataManger.Instance.GetWaterPoint();
-            clearStage = DataManger.Instance.GetClearStage();
+            highestClearedStage = DataManger.Instance.GetHighestClearedStage();
 
             // Coin 텍스트 업데이트
             if (coinText != null)
@@ -102,7 +102,8 @@ namespace WD_Develop.Scripts.Managers
             // 스테이지 버튼 이벤트 연결
             for (int i = 0; i < stageButtons.Count; i++)
             {
-                if (i <= clearStage)
+                // 최고 클리어 스테이지를 기준으로 버튼 활성화 (i가 0부터 시작하므로, i <= highestClearedStage)
+                if (i <= highestClearedStage)
                 {
                     // 버튼 활성화 + 클릭 이벤트 등록
                     stageButtons[i].gameObject.SetActive(true);
@@ -116,7 +117,7 @@ namespace WD_Develop.Scripts.Managers
                 }
             }
 
-            if (clearStage >= 8)
+            if (highestClearedStage >= 8)
             {
                 nextButton.gameObject.SetActive(true);
                 prevButton.gameObject.SetActive(true);
@@ -318,14 +319,14 @@ namespace WD_Develop.Scripts.Managers
                             stageScrollView.transform.DOScale(Vector3.one, animationDuration).SetEase(Ease.OutBack);
                         }
 
-                        if (nextButton != null && clearStage >= 8)
+                        if (nextButton != null && highestClearedStage >= 8)
                         {
                             nextButton.gameObject.SetActive(true);
                             nextButton.transform.localScale = Vector3.zero;
                             nextButton.transform.DOScale(Vector3.one, animationDuration).SetEase(Ease.OutBack);
                         }
 
-                        if (prevButton != null && clearStage >= 8)
+                        if (prevButton != null && highestClearedStage >= 8)
                         {
                             prevButton.gameObject.SetActive(true);
                             prevButton.transform.localScale = Vector3.zero;

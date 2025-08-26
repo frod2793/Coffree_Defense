@@ -7,9 +7,12 @@ public class UserCurrencyData : ScriptableObject
     [SerializeField] private int coin = 1000;
     [SerializeField] private int tp = 50; // Tower Point
     [SerializeField] private int waterPoint = 100;
-    [SerializeField] private int clearStage;
-    // 선택한 스테이지
-     public int selectStage;
+    
+    [Header("Game Progress")]
+    // 플레이어가 선택한 스테이지
+    [SerializeField] private int selectStage;
+    // 플레이어가 달성한 가장 높은 클리어 스테이지
+    [SerializeField] private int highestClearedStage;
 
     public int Coin
     {
@@ -29,16 +32,16 @@ public class UserCurrencyData : ScriptableObject
         private set => waterPoint = Mathf.Max(0, value); 
     }
 
-    public int ClearStage
-    {
-        get => clearStage;
-        private set => clearStage = value;
-    }
-
     public int SelectStage
     {
         get => selectStage;
         private set => selectStage = value;
+    }
+
+    public int HighestClearedStage
+    {
+        get => highestClearedStage;
+        private set => highestClearedStage = value;
     }
 
     private void OnEnable()
@@ -124,20 +127,23 @@ public class UserCurrencyData : ScriptableObject
         waterPoint = Mathf.Max(0, newWaterPoint);
         SaveData(); // 자동 저장
     }
-    
-    public void SetClearStage(int stage)
-    {
-        if (stage > clearStage)
-        {
-            ClearStage = stage;
-            SaveData();
-        }
-    }
 
     public void SetSelectStage(int stage)
     {
         SelectStage = stage;
         SaveData();
+    }
+
+    /// <summary>
+    /// 최고 클리어 스테이지를 갱신합니다. 기존 기록보다 높을 때만 저장됩니다.
+    /// </summary>
+    public void UpdateHighestClearedStage(int clearedStage)
+    {
+        if (clearedStage > highestClearedStage)
+        {
+            HighestClearedStage = clearedStage;
+            SaveData();
+        }
     }
 
     // 데이터를 기본값으로 리셋
@@ -146,8 +152,8 @@ public class UserCurrencyData : ScriptableObject
         coin = 1000;
         tp = 50;
         waterPoint = 100;
-        clearStage = 0;
         selectStage = 0;
+        highestClearedStage = 0;
         SaveData(); // 자동 저장
     }
 
