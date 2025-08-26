@@ -1186,7 +1186,7 @@ public class InGameUIManager : MonoBehaviour
     /// <summary>
     /// 플레이어의 최종 클리어 스테이지에 따라 드래그 아이템의 잠금 상태를 업데이트합니다.
     /// </summary>
-    private void UpdateDragItemUnlockState()
+    public void UpdateDragItemUnlockState()
     {
         if (images == null || images.Count == 0)
         {

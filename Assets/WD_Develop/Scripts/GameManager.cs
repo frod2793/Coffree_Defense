@@ -350,6 +350,8 @@ namespace WD_Develop.Scripts
                 DataManger.Instance.AddCoin(coinReward);
                 // 최고 클리어 스테이지를 갱신합니다.
                 DataManger.Instance.UpdateHighestClearedStage(CurrentWave);
+                // UI의 잠금 상태를 실시간으로 갱신합니다.
+                if (uiManager != null) uiManager.UpdateDragItemUnlockState();
             }
 
             OnWaveCompleted?.Invoke(CurrentWave, coinReward);
