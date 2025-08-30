@@ -15,5 +15,5 @@ MonoBehaviour:
   coin: 2525
   tp: 184
   waterPoint: 70
-  selectStage: 1
+  selectStage: 2
   highestClearedStage: 10

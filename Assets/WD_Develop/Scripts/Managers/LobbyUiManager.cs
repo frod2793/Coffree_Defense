@@ -1,12 +1,17 @@
+
 using UnityEngine;
 using UnityEngine.UI;
 using DG.Tweening;
 using System.Collections.Generic;
+using System;
 
 namespace WD_Develop.Scripts.Managers
 {
     public class LobbyUiManager : MonoBehaviour
     {
+
+        public static Action OnShowStageScrollView;
+
         [SerializeField]
         private List<Button> stageButtons;// 스테이지버튼 
         [SerializeField] private List<int> buttonValues; // 버튼에 스테이지 값 할당
@@ -15,10 +20,10 @@ namespace WD_Develop.Scripts.Managers
         Button settingButton;// 셋팅버튼 
 
         [SerializeField]
-        Button nextButton;// 셋팅버튼 
+        Button nextButton;
 
         [SerializeField]
-        Button prevButton;// 셋팅버튼 
+        Button prevButton;
 
         [Header("아이템 구매 창")]
         [SerializeField]
@@ -60,10 +65,13 @@ namespace WD_Develop.Scripts.Managers
         private int userCoins;
         private int turretPoints;
         private int waterPoints;
-        private int highestClearedStage;
+        private int clearStage;
+
 
         private void Start()
         {
+
+            OnShowStageScrollView += ShowStageScrollView;
 
             UserPointUpdate();
 
@@ -78,7 +86,7 @@ namespace WD_Develop.Scripts.Managers
             userCoins = DataManger.Instance.GetCoin();
             turretPoints = DataManger.Instance.GetTp();
             waterPoints = DataManger.Instance.GetWaterPoint();
-            highestClearedStage = DataManger.Instance.GetHighestClearedStage();
+            clearStage = DataManger.Instance.GetHighestClearedStage();
 
             // Coin 텍스트 업데이트
             if (coinText != null)
@@ -88,12 +96,12 @@ namespace WD_Develop.Scripts.Managers
             // TP 텍스트 업데이트
             if (turretPointsText != null)
             {
-                turretPointsText.text = "Turret Points : " + turretPoints;
+                turretPointsText.text = "TP : " + turretPoints;
             }
             // WP 텍스트 업데이트
             if (waterPointsText != null)
             {
-                waterPointsText.text = "Water Points : " + waterPoints;
+                waterPointsText.text = "WP : " + waterPoints;
             }
         }
 
@@ -102,30 +110,18 @@ namespace WD_Develop.Scripts.Managers
             // 스테이지 버튼 이벤트 연결
             for (int i = 0; i < stageButtons.Count; i++)
             {
-                // 최고 클리어 스테이지를 기준으로 버튼 활성화 (i가 0부터 시작하므로, i <= highestClearedStage)
-                if (i <= highestClearedStage)
+                if (i <= clearStage)
                 {
                     // 버튼 활성화 + 클릭 이벤트 등록
-                    stageButtons[i].gameObject.SetActive(true);
+                    stageButtons[i].interactable = true;
                     int value = buttonValues[i];
                     stageButtons[i].onClick.AddListener(() => OnStageButtonClicked(value));
                 }
                 else
                 {
                     // 버튼 비활성화
-                    stageButtons[i].gameObject.SetActive(false);
+                    stageButtons[i].interactable = false;
                 }
-            }
-
-            if (highestClearedStage >= 8)
-            {
-                nextButton.gameObject.SetActive(true);
-                prevButton.gameObject.SetActive(true);
-            }
-            else
-            {
-                nextButton.gameObject.SetActive(false);
-                prevButton.gameObject.SetActive(false);
             }
 
                 // 셋팅 버튼 이벤트 연결
@@ -277,6 +273,9 @@ namespace WD_Develop.Scripts.Managers
 
         private void ShowBuyPopup()
         {
+            
+            HideStageScrollView();
+
             if (buyPopUpPanel != null)
             {
                 buyPopUpPanel.SetActive(true);
@@ -287,18 +286,6 @@ namespace WD_Develop.Scripts.Managers
                     .SetEase(Ease.OutBack);
             }
 
-            if (stageScrollView != null)
-            {
-                stageScrollView.SetActive(false);
-            }
-            if(nextButton != null)
-            {
-                nextButton.gameObject.SetActive(false);
-            }
-            if (prevButton != null)
-            {
-                prevButton.gameObject.SetActive(false);
-            }
         }
 
         private void HideBuyPopup()
@@ -311,35 +298,75 @@ namespace WD_Develop.Scripts.Managers
                     .OnComplete(() =>
                     {
                         buyPopUpPanel.SetActive(false);
-                        if (stageScrollView != null)
-                        {
-                            stageScrollView.SetActive(true);
-
-                            stageScrollView.transform.localScale = Vector3.zero;
-                            stageScrollView.transform.DOScale(Vector3.one, animationDuration).SetEase(Ease.OutBack);
-                        }
-
-                        if (nextButton != null && highestClearedStage >= 8)
-                        {
-                            nextButton.gameObject.SetActive(true);
-                            nextButton.transform.localScale = Vector3.zero;
-                            nextButton.transform.DOScale(Vector3.one, animationDuration).SetEase(Ease.OutBack);
-                        }
-
-                        if (prevButton != null && highestClearedStage >= 8)
-                        {
-                            prevButton.gameObject.SetActive(true);
-                            prevButton.transform.localScale = Vector3.zero;
-                            prevButton.transform.DOScale(Vector3.one, animationDuration).SetEase(Ease.OutBack);
-                        }
+                        ShowStageScrollView();
                     });
             }
             
         }
 
-        private void ShowSettingPopup()
+        private void ShowStageScrollView()
+        {
+            if (stageScrollView != null)
+            {
+                stageScrollView.SetActive(true);
+
+                // 스크롤 뷰 등장 애니메이션 (스케일 + 바운스 효과)
+                stageScrollView.transform.localScale = Vector3.zero;
+                stageScrollView.transform.DOScale(Vector3.one, animationDuration)
+                    .SetEase(Ease.OutBack);
+            }
+
+            if (prevButton != null)
+            {
+                prevButton.gameObject.SetActive(true);
+
+                prevButton.transform.localScale = Vector3.zero;
+                prevButton.transform.DOScale(Vector3.one, animationDuration)
+                    .SetEase(Ease.OutBack);
+            }
+
+            if (nextButton != null)
+            {
+                nextButton.gameObject.SetActive(true);
+
+                nextButton.transform.localScale = Vector3.zero;
+                nextButton.transform.DOScale(Vector3.one, animationDuration)
+                    .SetEase(Ease.OutBack);
+            }
+        }
+
+        private void HideStageScrollView()
+        {
+            if (stageScrollView != null)
+            {
+                // 스크롤 뷰 사라지는 애니메이션
+                stageScrollView.transform.DOScale(Vector3.zero, animationDuration)
+                    .SetEase(Ease.InBack)
+                    .OnComplete(() => stageScrollView.SetActive(false));
+            }
+
+            if (prevButton != null)
+            {
+                prevButton.transform.DOScale(Vector3.zero, animationDuration)
+                    .SetEase(Ease.InBack)
+                    .OnComplete(() => prevButton.gameObject.SetActive(false));
+            }
+            
+            if (nextButton != null)
+            {
+                nextButton.transform.DOScale(Vector3.zero, animationDuration)
+                    .SetEase(Ease.InBack)
+                    .OnComplete(() => nextButton.gameObject.SetActive(false));
+            }
+
+        }
+
+        public void ShowSettingPopup()
         {
             Debug.Log("Setting button clicked");
+
+            HideStageScrollView();
+
             if (settingPopUpPanel != null)
             {
                 settingPopUpPanel.SetActive(true);

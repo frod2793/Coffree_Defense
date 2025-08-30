@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using DG.Tweening;
 using UnityEngine.EventSystems;
+using WD_Develop.Scripts.Managers;
 public class SettingPopUpController : MonoBehaviour
 {
     public Slider masterSlider;
@@ -51,7 +52,13 @@ public class SettingPopUpController : MonoBehaviour
             // 팝업 사라지는 애니메이션
             settingPopUpPanel.transform.DOScale(Vector3.zero, animationDuration)
                 .SetEase(Ease.InBack)
-                .OnComplete(() => settingPopUpPanel.SetActive(false));
+                .OnComplete(() =>
+                {
+                    settingPopUpPanel.SetActive(false);
+                    LobbyUiManager.OnShowStageScrollView?.Invoke();
+                }
+                
+                );
         }
     }
 

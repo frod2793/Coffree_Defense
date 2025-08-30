@@ -25,6 +25,7 @@ public class SwipeController : MonoBehaviour, IEndDragHandler
     {
         if (currentPage < maxPage)
         {
+            SoundManager.Instance.PlaySound(AudioMixerType.SFX, "UIButton");
             currentPage++;
             targetPos += pageStep;
             MovePage();
@@ -35,6 +36,7 @@ public class SwipeController : MonoBehaviour, IEndDragHandler
     {
         if (currentPage > 1)
         {
+            SoundManager.Instance.PlaySound(AudioMixerType.SFX, "UIButton");
             currentPage--;
             targetPos -= pageStep;
             MovePage();
