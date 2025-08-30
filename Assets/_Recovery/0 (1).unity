@@ -1434,13 +1434,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 371209459}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.27926934, y: -0.7381952, z: 0.15150574, w: 0.59508204}
+  m_LocalRotation: {x: 0.23234488, y: -0.5653513, z: 0.21670534, w: 0.76120466}
   m_LocalPosition: {x: -6.6, y: 3, z: -3.8}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 33.784, y: -107.205, z: -16.208}
+  m_LocalEulerAnglesHint: {x: 36.781, y: -71.602, z: 4.813}
 --- !u!114 &371209462
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1726,7 +1726,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 52d4c131b17640544b955b3df57ac04c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  caffewall: {fileID: 0}
+  caffewall: {fileID: 1487829641}
   stageData: {fileID: 11400000, guid: 43bc924746d71491cb571e04c9475b6a, type: 2}
   preparationTime: 5
   initialTpPerWave: 3
@@ -4342,6 +4342,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: f8c2421644b4381458d7650ee56d5d2c, type: 3}
+--- !u!1 &1487829641 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8546010099563666229, guid: f8c2421644b4381458d7650ee56d5d2c, type: 3}
+  m_PrefabInstance: {fileID: 1487829640}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1538190246
 GameObject:
   m_ObjectHideFlags: 0

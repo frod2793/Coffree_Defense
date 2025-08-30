@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 250cdc9ec1e95ca47850c6e332645bbe
+guid: a0a490fc8c3956d46ba1255789647fc8
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
@@ -9,6 +9,11 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: 01 - Default
     second: {fileID: 2100000, guid: 78afde3026053fb449d2adcfe2875ab8, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Glass
+    second: {fileID: 2100000, guid: d7452bbc13e892f43893ec2ac3b78fcb, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
